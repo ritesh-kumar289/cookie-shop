@@ -129,17 +129,16 @@ a:hover {
   pointer-events: none;
   width: 140px;
   height: auto;
-  /* Create a stacking context so mix-blend-mode blends against the page
-     background (body gradient) rather than the canvas element above it. */
-  isolation: isolate;
 }
 
 .brand-logo img {
   display: block;
   width: 100%;
   height: auto;
-  /* White / cream areas of the logo PNG multiply with the warm gradient
-     background and disappear, leaving only the coloured artwork visible. */
+  /* White / cream logo areas multiply with the warm #FEF0DC canvas background,
+     making them disappear and leaving only the coloured artwork visible.
+     isolation:isolate is intentionally absent so the blend composes against
+     the Three.js canvas (warm cream) rather than a new stacking context. */
   mix-blend-mode: multiply;
   filter: drop-shadow(0 2px 10px rgba(184, 116, 42, 0.22));
 }

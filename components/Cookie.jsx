@@ -75,8 +75,8 @@ const ROLL_CURVE_LENGTH = ROLL_CURVE.getLength();
 const KF_OPACITY = [
   { p: 0.00, v: 0 },
   { p: 0.06, v: 1 },   // fade in during scene 1
-  { p: 0.72, v: 1 },
-  { p: 0.82, v: 0 },   // fade out as plate takes over
+  { p: 0.70, v: 1 },
+  { p: 0.76, v: 0 },   // fully invisible BEFORE position resets at p=0.76 (prevents visible jump)
   { p: 1.00, v: 0 },
 ];
 
@@ -150,39 +150,62 @@ export default function Cookie({ scrollProgress, mouseRef }) {
   }, [mouseRef]);
 
   // Clone the scene once (memoized).
-  // 1. Compute bounding box → shift pivot to geometric center so the cookie
-  //    always rotates about its own center, never off-axis.
-  // 2. Normalise scale so the cookie is exactly 1 world-unit at its largest
-  //    dimension when group scale = 1.  KF_SCALE then directly controls size.
-  // 3. Force DoubleSide rendering so interior faces are visible when the
-  //    camera clips through the mesh (prevents the "split cookie" artefact).
-  // 4. Disable frustum culling so the cookie is never dropped mid-frame.
+  //
+  // CRITICAL ORDER — wrong order was the primary cause of the split/crescent bug:
+  //   1. Normalise scale FIRST  (`scale.setScalar(1/maxDim)`)
+  //   2. Call `updateMatrixWorld(true)` so world matrices reflect the new scale
+  //   3. THEN compute the bounding-box centre and subtract it from c.position
+  //
+  // Subtracting the pre-scale centre (previous code) left the geometric centre
+  // offset from the group origin by  centre * (1 - 1/maxDim), which caused the
+  // cookie to render partially outside the viewport (crescent / split artefact).
+  //
+  // Additional fixes applied to every mesh:
+  //   • DoubleSide   — prevents invisible interior faces on near-plane clip
+  //   • alphaTest=0  — do NOT discard pixels based on texture alpha; the texture's
+  //                    alpha map was creating invisible "holes" in the cookie body
+  //   • alphaMap=null — remove any separate alpha mask from the GLB material
+  //   • depthWrite   — correct depth ordering
+  //   • transparent=true — preserved so per-frame opacity animation still works
   const clonedScene = useMemo(() => {
-    const c = scene.clone();
+    const c = scene.clone(true);
+    c.updateMatrixWorld(true);
 
-    // ── Bounding-box centering ────────────────────────────────────────────
-    const box    = new THREE.Box3().setFromObject(c);
-    const center = new THREE.Vector3();
+    // ── Step 1: measure raw size ──────────────────────────────────────────
+    const box1    = new THREE.Box3().setFromObject(c);
     const sizeVec = new THREE.Vector3();
-    box.getCenter(center);
-    box.getSize(sizeVec);
-    // Shift the root group so bbox centre is at local origin
-    c.position.sub(center);
-    // Normalise so maxDim = 1 world unit at scale 1
+    box1.getSize(sizeVec);
     const maxDim = Math.max(sizeVec.x, sizeVec.y, sizeVec.z);
-    if (maxDim > 0) c.scale.multiplyScalar(1 / maxDim);
 
-    // ── Per-mesh fixes ────────────────────────────────────────────────────
+    // ── Step 2: apply normalisation scale (model = 1 world-unit wide at scale=1)
+    if (maxDim > 0) {
+      c.scale.setScalar(1 / maxDim);
+      c.updateMatrixWorld(true); // recompute AFTER scale — required for step 3
+    }
+
+    // ── Step 3: centre using post-scale bbox ──────────────────────────────
+    // centre is now in the scaled coordinate system; subtracting it puts the
+    // geometric centre exactly at the group's local origin.
+    const box2   = new THREE.Box3().setFromObject(c);
+    const centre = new THREE.Vector3();
+    box2.getCenter(centre);
+    c.position.sub(centre);
+
+    // ── Step 4: per-mesh material & culling fixes ─────────────────────────
     c.traverse((child) => {
       if (child.isMesh) {
         child.frustumCulled = false;
+        child.castShadow    = true;
         const mats = Array.isArray(child.material)
           ? child.material
           : [child.material];
         mats.forEach((m) => {
-          m.side       = THREE.DoubleSide; // no invisible interior on clip
-          m.depthWrite = true;
-          m.transparent = true; // opacity controlled per-frame
+          m.side        = THREE.DoubleSide; // no invisible back-faces on near-clip
+          m.depthWrite  = true;
+          m.depthTest   = true;
+          m.transparent = true;             // keep — needed for opacity animation
+          m.alphaTest   = 0;                // never discard pixels via texture alpha
+          m.alphaMap    = null;             // remove alpha mask that was punching holes
           m.needsUpdate = true;
         });
       }
@@ -205,17 +228,21 @@ export default function Cookie({ scrollProgress, mouseRef }) {
     const deltaP = Math.min(MAX_SCROLL_DELTA, Math.max(-MAX_SCROLL_DELTA, rawDeltaP));
     prevScrollProgressRef.current = p;
 
-    // ── Opacity ───────────────────────────────────────────────────────────
+    // ── Opacity + visibility ──────────────────────────────────────────────
     const opacity = kf(KF_OPACITY, p);
-    grp.traverse((child) => {
-      if (child.isMesh && child.material) {
-        const mats = Array.isArray(child.material) ? child.material : [child.material];
-        mats.forEach((m) => {
-          if (m.transparent !== true) m.transparent = true;
-          if (Math.abs(m.opacity - opacity) > 0.001) m.opacity = opacity;
-        });
-      }
-    });
+    // Hide entirely when invisible — avoids any per-frame material traversal
+    // cost and guarantees no ghost render after the roll exits.
+    grp.visible = opacity > 0.005;
+    if (grp.visible) {
+      grp.traverse((child) => {
+        if (child.isMesh && child.material) {
+          const mats = Array.isArray(child.material) ? child.material : [child.material];
+          mats.forEach((m) => {
+            if (Math.abs(m.opacity - opacity) > 0.001) m.opacity = opacity;
+          });
+        }
+      });
+    }
 
     // ── Scale ─────────────────────────────────────────────────────────────
     const sc = kf(KF_SCALE, p);

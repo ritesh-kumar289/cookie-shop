@@ -39,20 +39,21 @@ export default function Scene({ scrollProgress, mouseRef }) {
         frameloop="always"
         gl={{
           antialias: true,
-          alpha: true,
           logarithmicDepthBuffer: true,
           toneMapping: THREE.ACESFilmicToneMapping,
           outputColorSpace: THREE.SRGBColorSpace,
         }}
-        onCreated={(state) => {
-          // Ensure WebGL clears to fully transparent so the CSS body
-          // radial-gradient shows through without any WebGL clear-color tint.
-          state.gl.setClearColor(0x000000, 0);
-        }}
         camera={{ fov: 45, near: 0.1, far: 100, position: [0, 5, 0.1] }}
-        style={{ width: '100%', height: '100%', background: 'transparent' }}
+        style={{ width: '100%', height: '100%' }}
         shadows
       >
+        {/*
+          Warm cream background — matches the CSS body radial-gradient centre.
+          Using a Three.js scene background (instead of alpha:true + transparent
+          canvas) eliminates the gray band artefact caused by the EffectComposer
+          postprocessing passes rendering to internal FBOs without alpha support.
+        */}
+        <color attach="background" args={['#FEF0DC']} />
         <Suspense fallback={null}>
           <Lighting />
           <CookiesPlate scrollProgress={scrollProgress} />

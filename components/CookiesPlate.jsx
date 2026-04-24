@@ -37,29 +37,41 @@ export default function CookiesPlate({ scrollProgress }) {
   const shakeRef    = useRef(0);
   const { scene }   = useGLTF('/models/cookies.glb');
 
-  // Clone, centre, normalise and fix materials — same strategy as Cookie.jsx.
+  // Clone, centre, normalise and fix materials.
+  // SAME corrected order as Cookie.jsx: scale first → updateMatrixWorld → centre.
   const clonedScene = useMemo(() => {
-    const c = scene.clone();
+    const c = scene.clone(true);
+    c.updateMatrixWorld(true);
 
-    const box     = new THREE.Box3().setFromObject(c);
-    const center  = new THREE.Vector3();
+    const box1    = new THREE.Box3().setFromObject(c);
     const sizeVec = new THREE.Vector3();
-    box.getCenter(center);
-    box.getSize(sizeVec);
-    c.position.sub(center);
+    box1.getSize(sizeVec);
     const maxDim = Math.max(sizeVec.x, sizeVec.y, sizeVec.z);
-    if (maxDim > 0) c.scale.multiplyScalar(1 / maxDim);
+
+    if (maxDim > 0) {
+      c.scale.setScalar(1 / maxDim);
+      c.updateMatrixWorld(true);
+    }
+
+    const box2   = new THREE.Box3().setFromObject(c);
+    const centre = new THREE.Vector3();
+    box2.getCenter(centre);
+    c.position.sub(centre);
 
     c.traverse((child) => {
       if (child.isMesh) {
         child.frustumCulled = false;
+        child.castShadow    = true;
         const mats = Array.isArray(child.material)
           ? child.material
           : [child.material];
         mats.forEach((m) => {
           m.side        = THREE.DoubleSide;
           m.depthWrite  = true;
+          m.depthTest   = true;
           m.transparent = true;
+          m.alphaTest   = 0;
+          m.alphaMap    = null;
           m.needsUpdate = true;
         });
       }
