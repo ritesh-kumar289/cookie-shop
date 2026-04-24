@@ -38,7 +38,8 @@ export default function ScrollController({ scrollProgress }) {
     // Integrate Lenis with GSAP ticker
     lenis.on('scroll', ScrollTrigger.update);
 
-    const onRaf = (time) => lenis.raf(time);
+    // GSAP ticker delivers time in seconds; Lenis.raf() requires milliseconds.
+    const onRaf = (time) => lenis.raf(time * 1000);
     gsap.ticker.add(onRaf);
     gsap.ticker.lagSmoothing(0);
 

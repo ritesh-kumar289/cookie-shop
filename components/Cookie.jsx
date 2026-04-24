@@ -11,7 +11,7 @@
  *  Scene 6  (0.80 – 1.00)  SHOWCASE        : invisible (plate takes over)
  */
 
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -116,8 +116,8 @@ export default function Cookie({ scrollProgress }) {
   const timeRef   = useRef(0);
   const rollYRef  = useRef(0); // accumulated roll rotation-Z (scene 4)
 
-  // Clone the scene so multiple mounts don't share geometry/material state
-  const clonedScene = scene.clone();
+  // Clone the scene once (memoized) so re-renders don't leak Three.js objects
+  const clonedScene = useMemo(() => scene.clone(), [scene]);
 
   useFrame((_, delta) => {
     if (!groupRef.current) return;
