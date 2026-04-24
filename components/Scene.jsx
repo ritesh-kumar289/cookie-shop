@@ -40,8 +40,14 @@ export default function Scene({ scrollProgress, mouseRef }) {
         gl={{
           antialias: true,
           alpha: true,
+          logarithmicDepthBuffer: true,
           toneMapping: THREE.ACESFilmicToneMapping,
           outputColorSpace: THREE.SRGBColorSpace,
+        }}
+        onCreated={(state) => {
+          // Ensure WebGL clears to fully transparent so the CSS body
+          // radial-gradient shows through without any WebGL clear-color tint.
+          state.gl.setClearColor(0x000000, 0);
         }}
         camera={{ fov: 45, near: 0.1, far: 100, position: [0, 5, 0.1] }}
         style={{ width: '100%', height: '100%', background: 'transparent' }}

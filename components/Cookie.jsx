@@ -80,14 +80,16 @@ const KF_OPACITY = [
   { p: 1.00, v: 0 },
 ];
 
-// ── Scale: reduced to ~25% of the original oversized values (was 35 at peak) ──
+// ── Scale keyframes ────────────────────────────────────────────────────────────
+// Model is normalised to 1 world-unit wide in the useMemo below, so these
+// values represent the cookie's real diameter in world units.
 const KF_SCALE = [
-  { p: 0.00, v: 8.5 },
-  { p: 0.15, v: 8.5 },
-  { p: 0.30, v: 8.0 },
-  { p: 0.44, v: 7.5 },
-  { p: 0.76, v: 7.0 },
-  { p: 1.00, v: 7.0 },
+  { p: 0.00, v: 1.5 },
+  { p: 0.15, v: 1.5 },
+  { p: 0.30, v: 1.4 },
+  { p: 0.44, v: 1.3 },
+  { p: 0.76, v: 1.2 },
+  { p: 1.00, v: 1.2 },
 ];
 
 // rotX: flat (0) → upright (π/2) during scene 3
@@ -109,11 +111,11 @@ const KF_POS_Y_BASE = [
   { p: 1.00, v: 0   },
 ];
 
-// ── Cookie apparent radius at scale=1 in world-space units ──────────────────
-// The cookie GLB model has a radius of ~0.1 world units at scale 1.
-// At scale 8.5: apparent_radius = 0.1 * 8.5 = 0.85 world units.
-// For physically correct rolling: rotation_z = arcLen / apparent_radius_world
-const COOKIE_RADIUS_AT_SCALE_1 = 0.1;
+// ── Cookie radius for rolling physics ────────────────────────────────────────
+// After bounding-box normalisation the model is 1 world-unit at its largest
+// dimension, so the disc radius ≈ 0.5 world units at group scale = 1.
+// apparentRadius_world = COOKIE_RADIUS_AT_SCALE_1 * groupScale
+const COOKIE_RADIUS_AT_SCALE_1 = 0.5;
 
 // Scroll-direction lean sensitivity (rad per unit of normalised scroll delta)
 const TILT_SENSITIVITY = 35;
@@ -147,15 +149,45 @@ export default function Cookie({ scrollProgress, mouseRef }) {
     return () => window.removeEventListener('mousemove', onMove);
   }, [mouseRef]);
 
-  // Clone the scene once (memoized) and disable frustum culling on every mesh
-  // to prevent the cookie from disappearing when partially out of the frustum.
+  // Clone the scene once (memoized).
+  // 1. Compute bounding box → shift pivot to geometric center so the cookie
+  //    always rotates about its own center, never off-axis.
+  // 2. Normalise scale so the cookie is exactly 1 world-unit at its largest
+  //    dimension when group scale = 1.  KF_SCALE then directly controls size.
+  // 3. Force DoubleSide rendering so interior faces are visible when the
+  //    camera clips through the mesh (prevents the "split cookie" artefact).
+  // 4. Disable frustum culling so the cookie is never dropped mid-frame.
   const clonedScene = useMemo(() => {
     const c = scene.clone();
+
+    // ── Bounding-box centering ────────────────────────────────────────────
+    const box    = new THREE.Box3().setFromObject(c);
+    const center = new THREE.Vector3();
+    const sizeVec = new THREE.Vector3();
+    box.getCenter(center);
+    box.getSize(sizeVec);
+    // Shift the root group so bbox centre is at local origin
+    c.position.sub(center);
+    // Normalise so maxDim = 1 world unit at scale 1
+    const maxDim = Math.max(sizeVec.x, sizeVec.y, sizeVec.z);
+    if (maxDim > 0) c.scale.multiplyScalar(1 / maxDim);
+
+    // ── Per-mesh fixes ────────────────────────────────────────────────────
     c.traverse((child) => {
       if (child.isMesh) {
         child.frustumCulled = false;
+        const mats = Array.isArray(child.material)
+          ? child.material
+          : [child.material];
+        mats.forEach((m) => {
+          m.side       = THREE.DoubleSide; // no invisible interior on clip
+          m.depthWrite = true;
+          m.transparent = true; // opacity controlled per-frame
+          m.needsUpdate = true;
+        });
       }
     });
+
     return c;
   }, [scene]);
 

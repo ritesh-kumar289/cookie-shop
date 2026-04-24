@@ -8,9 +8,10 @@
  *  0.87 – 1.00  fully visible, gentle slow rotation, hero showcase
  */
 
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
 
 // ── DRACO decoder (CDN) ───────────────────────────────────────────────────────
 useGLTF.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
@@ -36,6 +37,37 @@ export default function CookiesPlate({ scrollProgress }) {
   const shakeRef    = useRef(0);
   const { scene }   = useGLTF('/models/cookies.glb');
 
+  // Clone, centre, normalise and fix materials — same strategy as Cookie.jsx.
+  const clonedScene = useMemo(() => {
+    const c = scene.clone();
+
+    const box     = new THREE.Box3().setFromObject(c);
+    const center  = new THREE.Vector3();
+    const sizeVec = new THREE.Vector3();
+    box.getCenter(center);
+    box.getSize(sizeVec);
+    c.position.sub(center);
+    const maxDim = Math.max(sizeVec.x, sizeVec.y, sizeVec.z);
+    if (maxDim > 0) c.scale.multiplyScalar(1 / maxDim);
+
+    c.traverse((child) => {
+      if (child.isMesh) {
+        child.frustumCulled = false;
+        const mats = Array.isArray(child.material)
+          ? child.material
+          : [child.material];
+        mats.forEach((m) => {
+          m.side        = THREE.DoubleSide;
+          m.depthWrite  = true;
+          m.transparent = true;
+          m.needsUpdate = true;
+        });
+      }
+    });
+
+    return c;
+  }, [scene]);
+
   useFrame((_, delta) => {
     if (!groupRef.current) return;
     const p   = scrollProgress.current;
@@ -60,7 +92,9 @@ export default function CookiesPlate({ scrollProgress }) {
     });
 
     // ── Scale ─────────────────────────────────────────────────────────────
-    grp.scale.setScalar(20);
+    // After bbox normalisation the model is 1 world-unit wide at scale 1.
+    // 1.5 gives a plate that fills the cinematic hero shot nicely.
+    grp.scale.setScalar(1.5);
 
     // ── Showcase slow rotation (only when fully visible) ──────────────────
     if (p >= 0.87) {
@@ -99,7 +133,7 @@ export default function CookiesPlate({ scrollProgress }) {
 
   return (
     <group ref={groupRef}>
-      <primitive object={scene} />
+      <primitive object={clonedScene} />
     </group>
   );
 }
