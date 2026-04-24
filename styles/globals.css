@@ -1,0 +1,202 @@
+:root {
+  --color-primary-dark: #5A2E1F;
+  --color-deep-brown: #3E1F14;
+  --color-caramel: #B8742A;
+  --color-golden: #D8A45A;
+  --color-cream: #F4E9DA;
+  --color-olive: #7A7F4B;
+  --color-light-beige: #E8D8C3;
+  --color-chip-dark: #2B1A12;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: auto;
+  overflow-x: hidden;
+}
+
+body {
+  background: #0a0704;
+  color: var(--color-cream);
+  font-family: 'Georgia', 'Times New Roman', serif;
+  overflow-x: hidden;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+canvas {
+  display: block;
+}
+
+a {
+  color: var(--color-golden);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--color-caramel);
+}
+
+/* ─── Layout ──────────────────────────────────────────────── */
+
+.canvas-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
+}
+
+.ui-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.scroll-container {
+  position: relative;
+  height: 700vh;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* ─── Brand logo ──────────────────────────────────────────── */
+
+.brand-logo {
+  position: fixed;
+  top: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  pointer-events: none;
+  letter-spacing: 0.35em;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: var(--color-golden);
+  opacity: 0.75;
+}
+
+/* ─── Scroll hint ─────────────────────────────────────────── */
+
+.scroll-hint {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-cream);
+  opacity: 0.5;
+  font-size: 0.65rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+.scroll-hint-line {
+  width: 1px;
+  height: 40px;
+  background: linear-gradient(to bottom, var(--color-golden), transparent);
+  animation: scrollPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes scrollPulse {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scaleY(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scaleY(1.12);
+  }
+}
+
+/* ─── Scene labels ────────────────────────────────────────── */
+
+.scene-label {
+  position: absolute;
+  bottom: 12vh;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+  width: 90vw;
+  max-width: 820px;
+}
+
+.scene-label h1 {
+  font-size: clamp(2.4rem, 8vw, 6rem);
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  color: var(--color-cream);
+  line-height: 1.1;
+  text-shadow:
+    0 0 60px rgba(184, 116, 42, 0.45),
+    0 2px 24px rgba(0, 0, 0, 0.85);
+}
+
+.scene-label .tagline {
+  font-size: clamp(0.85rem, 2.2vw, 1.2rem);
+  font-style: italic;
+  color: var(--color-light-beige);
+  margin-top: 0.85rem;
+  letter-spacing: 0.05em;
+  opacity: 0.88;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.7);
+}
+
+.scene-label p {
+  font-size: clamp(0.8rem, 1.8vw, 1rem);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-caramel);
+  margin-top: 1rem;
+  opacity: 0.9;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.7);
+}
+
+/* ─── Progress dots ───────────────────────────────────────── */
+
+.progress-bar {
+  position: fixed;
+  left: 1.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  pointer-events: none;
+}
+
+.progress-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-caramel);
+  opacity: 0.3;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.progress-dot.active {
+  opacity: 1;
+  transform: scale(1.7);
+  background: var(--color-golden);
+}

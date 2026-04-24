@@ -1,0 +1,27 @@
+{
+  "name": "crunch-bites",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "overrides": {
+    "postcss": ">=8.5.10"
+  },
+  "dependencies": {
+    "next": "15.5.15",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "@react-three/fiber": "8.16.8",
+    "@react-three/drei": "9.122.0",
+    "@react-three/postprocessing": "2.16.2",
+    "three": "0.164.1",
+    "gsap": "3.12.5",
+    "@gsap/react": "2.1.1",
+    "lenis": "1.1.1",
+    "framer-motion": "11.2.10",
+    "postprocessing": "6.36.3"
+  }
+}
