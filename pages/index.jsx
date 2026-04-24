@@ -92,9 +92,22 @@ const logoVariants = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Home() {
   const scrollProgress = useRef(0);
+  // Normalised mouse coordinates in [-1, +1]; shared with the 3D scene via ref
+  // to avoid per-frame React re-renders.
+  const mouseRef = useRef({ x: 0, y: 0 });
   const [activeScene, setActiveScene] = useState('scene1');
   const [showScrollHint, setShowScrollHint] = useState(true);
   const [activeDot, setActiveDot] = useState(0);
+
+  // Track cursor position so 3D components can apply mouse-parallax effects
+  useEffect(() => {
+    const onMove = (e) => {
+      mouseRef.current.x = (e.clientX / window.innerWidth  - 0.5) * 2;
+      mouseRef.current.y = (e.clientY / window.innerHeight - 0.5) * 2;
+    };
+    window.addEventListener('mousemove', onMove, { passive: true });
+    return () => window.removeEventListener('mousemove', onMove);
+  }, []);
 
   // Poll scroll progress ref at 60fps to drive React UI state
   useEffect(() => {
@@ -144,7 +157,7 @@ export default function Home() {
 
       {/* Fixed 3D canvas */}
       <div className="canvas-wrapper">
-        <Scene scrollProgress={scrollProgress} />
+        <Scene scrollProgress={scrollProgress} mouseRef={mouseRef} />
       </div>
 
       {/* Lenis + GSAP scroll driver */}

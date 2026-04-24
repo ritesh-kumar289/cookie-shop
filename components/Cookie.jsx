@@ -11,7 +11,7 @@
  *  Scene 6  (0.87 – 1.00)  SHOWCASE        : invisible (plate takes over)
  */
 
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -80,7 +80,7 @@ const KF_OPACITY = [
   { p: 1.00, v: 0 },
 ];
 
-// ── Scale: reduced to ~25% of previous ────────────────────────────────────────
+// ── Scale: reduced to ~25% of the original oversized values (was 35 at peak) ──
 const KF_SCALE = [
   { p: 0.00, v: 8.5 },
   { p: 0.15, v: 8.5 },
@@ -118,17 +118,46 @@ const COOKIE_RADIUS_AT_SCALE_1 = 0.1;
 // Scroll-direction lean sensitivity (rad per unit of normalised scroll delta)
 const TILT_SENSITIVITY = 35;
 
+// ── Mouse parallax state (module-level, shared across renders) ────────────────
+// Stores normalised device cursor coordinates in [-1, +1].
+// NOTE: This is a module-level fallback only; the preferred path uses the
+// mouseRef prop passed from index.jsx → Scene.jsx → Cookie.jsx.
+const _mouse = { x: 0, y: 0 };
+
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function Cookie({ scrollProgress }) {
+export default function Cookie({ scrollProgress, mouseRef }) {
   const groupRef = useRef();
   const { scene } = useGLTF('/models/cookie.glb');
   const timeRef = useRef(0);
   const prevScrollProgressRef = useRef(0);
   const tiltRef = useRef(0); // accumulated scroll-direction tilt (Z)
+  // Smoothed mouse influence refs (lerped per-frame to avoid jitter)
+  const mouseXRef = useRef(0);
+  const mouseYRef = useRef(0);
 
-  // Clone the scene once (memoized) so re-renders don't leak Three.js objects
-  const clonedScene = useMemo(() => scene.clone(), [scene]);
+  // ── Mouse tracking for parallax (fallback if no mouseRef prop) ───────────
+  useEffect(() => {
+    if (mouseRef) return; // parent handles it via mouseRef prop
+    const onMove = (e) => {
+      _mouse.x = (e.clientX / window.innerWidth  - 0.5) * 2;
+      _mouse.y = (e.clientY / window.innerHeight - 0.5) * 2;
+    };
+    window.addEventListener('mousemove', onMove, { passive: true });
+    return () => window.removeEventListener('mousemove', onMove);
+  }, [mouseRef]);
+
+  // Clone the scene once (memoized) and disable frustum culling on every mesh
+  // to prevent the cookie from disappearing when partially out of the frustum.
+  const clonedScene = useMemo(() => {
+    const c = scene.clone();
+    c.traverse((child) => {
+      if (child.isMesh) {
+        child.frustumCulled = false;
+      }
+    });
+    return c;
+  }, [scene]);
 
   useFrame((_, delta) => {
     if (!groupRef.current) return;
@@ -203,7 +232,7 @@ export default function Cookie({ scrollProgress }) {
       grp.rotation.x += tiltRef.current * 0.4;
 
     } else if (p < 0.44) {
-      // Scenes 1-3: stationary at origin, gentle float
+      // Scenes 1-3: stationary at origin, gentle float + mouse parallax
       const floatY = p < 0.30
         ? Math.sin(t * 1.0) * 0.08
         : 0;
@@ -215,6 +244,15 @@ export default function Cookie({ scrollProgress }) {
       if (p < 0.30) {
         grp.rotation.z = Math.sin(t * 2.2) * 0.025;
       }
+
+      // Smooth mouse-parallax influence — subtle rotation toward cursor
+      const mx = mouseRef ? mouseRef.current.x : _mouse.x;
+      const my = mouseRef ? mouseRef.current.y : _mouse.y;
+      mouseXRef.current = lerp(mouseXRef.current, mx, 0.04);
+      mouseYRef.current = lerp(mouseYRef.current, my, 0.04);
+      // Apply only when cookie is stable (scenes 1-3); mix with existing rotY
+      grp.rotation.y += mouseXRef.current * 0.06;
+      grp.rotation.x += mouseYRef.current * 0.04;
 
     } else {
       // Scenes 5-6: cookie rests at plate origin then fades out

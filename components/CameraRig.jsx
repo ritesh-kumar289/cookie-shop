@@ -72,13 +72,18 @@ const HANDHELD_FREQ_Y_LOW  = 0.43;  // Hz – primary vertical drift
 const HANDHELD_FREQ_Y_HIGH = 0.89;  // Hz – secondary vertical shimmer
 const HANDHELD_AMP_Y_LOW   = 0.005; // world units amplitude (primary)
 const HANDHELD_AMP_Y_HIGH  = 0.002; // world units amplitude (secondary)
-const _targetPos   = new THREE.Vector3();
-const _lookTarget  = new THREE.Vector3();
 
-export default function CameraRig({ scrollProgress }) {
+// Reusable vectors (avoid per-frame allocation)
+const _targetPos  = new THREE.Vector3();
+const _lookTarget = new THREE.Vector3();
+
+export default function CameraRig({ scrollProgress, mouseRef }) {
   const { camera } = useThree();
   const currentLookAt = useRef(new THREE.Vector3(0, 0, 0));
   const timeRef = useRef(0);
+  // Smoothed mouse offsets for camera lag (different lerp speed than cookie)
+  const camMouseX = useRef(0);
+  const camMouseY = useRef(0);
 
   useFrame((_, delta) => {
     timeRef.current += delta;
@@ -107,9 +112,20 @@ export default function CameraRig({ scrollProgress }) {
     const microY = Math.cos(t * HANDHELD_FREQ_Y_LOW)  * HANDHELD_AMP_Y_LOW
                  + Math.cos(t * HANDHELD_FREQ_Y_HIGH) * HANDHELD_AMP_Y_HIGH;
 
+    // ── Mouse parallax on camera (subtle shift, only in idle/early scenes) ─
+    if (mouseRef && p < 0.44) {
+      const mx = mouseRef.current.x;
+      const my = mouseRef.current.y;
+      camMouseX.current += (mx * 0.04 - camMouseX.current) * 0.03;
+      camMouseY.current += (my * 0.03 - camMouseY.current) * 0.03;
+    } else {
+      camMouseX.current *= 0.96;
+      camMouseY.current *= 0.96;
+    }
+
     _targetPos.set(
-      pos[0] + microX,
-      pos[1] + parallaxY + microY,
+      pos[0] + microX + camMouseX.current,
+      pos[1] + parallaxY + microY + camMouseY.current,
       pos[2]
     );
     _lookTarget.set(target[0], target[1], target[2]);

@@ -32,13 +32,14 @@ class CanvasErrorBoundary extends Component {
   }
 }
 
-export default function Scene({ scrollProgress }) {
+export default function Scene({ scrollProgress, mouseRef }) {
   return (
     <CanvasErrorBoundary>
       <Canvas
         frameloop="always"
         gl={{
           antialias: true,
+          alpha: true,
           toneMapping: THREE.ACESFilmicToneMapping,
           outputColorSpace: THREE.SRGBColorSpace,
         }}
@@ -49,8 +50,8 @@ export default function Scene({ scrollProgress }) {
         <Suspense fallback={null}>
           <Lighting />
           <CookiesPlate scrollProgress={scrollProgress} />
-          <Cookie scrollProgress={scrollProgress} />
-          <CameraRig scrollProgress={scrollProgress} />
+          <Cookie scrollProgress={scrollProgress} mouseRef={mouseRef} />
+          <CameraRig scrollProgress={scrollProgress} mouseRef={mouseRef} />
           <Effects scrollProgress={scrollProgress} />
         </Suspense>
       </Canvas>
