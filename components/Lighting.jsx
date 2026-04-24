@@ -37,13 +37,13 @@ export default function Lighting() {
         decay={2}
       />
 
-      {/* Ground contact shadow */}
+      {/* Ground contact shadow — scale expanded for the larger model footprint */}
       <ContactShadows
-        position={[0, -0.55, 0]}
-        opacity={0.55}
-        scale={10}
-        blur={2.5}
-        far={10}
+        position={[0, -2, 0]}
+        opacity={0.45}
+        scale={50}
+        blur={3.5}
+        far={20}
         color="#2B1A12"
       />
 

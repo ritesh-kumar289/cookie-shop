@@ -80,13 +80,14 @@ const KF_OPACITY = [
   { p: 1.00, v: 0   },
 ];
 
+// ── Scale: ~28× larger than the original so the cookie fills the frame ────────
 const KF_SCALE = [
-  { p: 0.00, v: 1.3 },
-  { p: 0.15, v: 1.3 },
-  { p: 0.30, v: 1.2 },
-  { p: 0.45, v: 1.1 },
-  { p: 0.65, v: 1.0 },
-  { p: 1.00, v: 1.0 },
+  { p: 0.00, v: 35 },
+  { p: 0.15, v: 35 },
+  { p: 0.30, v: 32 },
+  { p: 0.45, v: 29 },
+  { p: 0.65, v: 26 },
+  { p: 1.00, v: 26 },
 ];
 
 // rotX: flat (0) → upright (π/2) during scene 3, then lay back during roll
@@ -103,7 +104,7 @@ const KF_ROT_X = [
 const KF_POS_Y_BASE = [
   { p: 0.00, v: 0    },
   { p: 0.30, v: 0    },
-  { p: 0.45, v: 0.15 },  // slight lift when going upright
+  { p: 0.45, v: 0.4  },  // increased lift when going upright (proportional to larger model)
   { p: 0.65, v: 0    },
   { p: 1.00, v: 0    },
 ];
@@ -114,7 +115,8 @@ export default function Cookie({ scrollProgress }) {
   const groupRef = useRef();
   const { scene } = useGLTF('/models/cookie.glb');
   const timeRef   = useRef(0);
-  const rollYRef  = useRef(0); // accumulated roll rotation-Z (scene 4)
+  // Track previous scroll progress to derive a scroll-delta for Scene 1 rotation
+  const prevScrollProgressRef = useRef(0);
 
   // Clone the scene once (memoized) so re-renders don't leak Three.js objects
   const clonedScene = useMemo(() => scene.clone(), [scene]);
@@ -126,6 +128,13 @@ export default function Cookie({ scrollProgress }) {
     const p   = scrollProgress.current;
     const t   = timeRef.current;
     const grp = groupRef.current;
+
+    // Scroll delta — positive when scrolling forward, negative when reversing.
+    // Clamped to ±MAX_SCROLL_DELTA to prevent sudden jumps when the GSAP scrub
+    // catches up after the user pauses and then scrolls quickly.
+    const MAX_SCROLL_DELTA = 0.05;
+    const deltaP = Math.min(MAX_SCROLL_DELTA, Math.max(-MAX_SCROLL_DELTA, p - prevScrollProgressRef.current));
+    prevScrollProgressRef.current = p;
 
     // ── Opacity ───────────────────────────────────────────────────────────
     const opacity = kf(KF_OPACITY, p);
@@ -146,18 +155,25 @@ export default function Cookie({ scrollProgress }) {
     // ── Rotation X (tilt) ─────────────────────────────────────────────────
     grp.rotation.x = kf(KF_ROT_X, p);
 
-    // ── Rotation Y (continuous spin, speed varies by scene) ───────────────
-    let spinSpeed = 0;
-    if (p < 0.15)       spinSpeed = 0.55;  // Scene 1: slow elegant spin
-    else if (p < 0.30)  spinSpeed = 0.3;   // Scene 2: counter-orbit
-    else if (p < 0.45)  spinSpeed = 0.15;  // Scene 3: slowing
-    else if (p < 0.65)  spinSpeed = 0;     // Scene 4: rolling controls rotation
-    grp.rotation.y += delta * spinSpeed;
-
-    // Scene 2: slight counter-rotation while camera orbits
-    if (p >= 0.15 && p < 0.30) {
-      grp.rotation.y -= delta * 0.12;
+    // ── Rotation Y ────────────────────────────────────────────────────────
+    //
+    // Scene 1 (0 → 0.15): ONE smooth 360° rotation driven entirely by scroll
+    // progress, not by wall-clock time. This means:
+    //   • scroll forward → cookie spins forward
+    //   • scroll backward → cookie reverses perfectly
+    //   • total rotation over scene 1 = exactly 2π regardless of scroll speed
+    //
+    // Scenes 2-3: cinematic time-based orbit (same as original).
+    //
+    if (p < 0.15) {
+      // deltaP accumulates to 0.15 over scene 1, so Σ(deltaP * 2π/0.15) = 2π.
+      grp.rotation.y += deltaP * (Math.PI * 2 / 0.15);
+    } else if (p < 0.30) {
+      grp.rotation.y += delta * 0.18;  // Scene 2: gentle orbit (was 0.3 − 0.12)
+    } else if (p < 0.45) {
+      grp.rotation.y += delta * 0.15;  // Scene 3: slow down
     }
+    // Scene 4+: rotation.y is overridden by the roll-tangent below
 
     // ── Scene 4: ROLL along S-curve ───────────────────────────────────────
     if (p >= 0.45 && p < 0.65) {
@@ -168,22 +184,23 @@ export default function Cookie({ scrollProgress }) {
       // Position follows curve
       grp.position.set(point.x, kf(KF_POS_Y_BASE, p), point.z);
 
-      // Rotation Z: roll angle proportional to arc length travelled
+      // Rotation Z: reduced from 2.2 → 0.8 rad/unit so the now-larger cookie
+      // rolls at a visually natural speed rather than spinning invisibly fast.
       const arcLen       = rollT * ROLL_CURVE_LENGTH;
-      grp.rotation.z     = -(arcLen * 2.2); // 2.2 rad per unit = ~one full turn per ~3 units
+      grp.rotation.z     = -(arcLen * 0.8);
 
       // Face direction of travel (yaw toward tangent)
       const angle = Math.atan2(tangent.x, tangent.z);
       grp.rotation.y = angle;
 
-      // Tiny vertical bounce (sinusoidal over roll progress)
-      const bounce = Math.abs(Math.sin(rollT * Math.PI * 4)) * 0.04;
+      // Vertical bounce scaled to match model size (was 0.04)
+      const bounce = Math.abs(Math.sin(rollT * Math.PI * 4)) * 0.25;
       grp.position.y += bounce;
 
     } else if (p < 0.45) {
       // Scenes 1-3: stationary at origin, gentle float
       const floatY = p < 0.30
-        ? Math.sin(t * 1.2) * 0.04   // scene 1-2: breathing float
+        ? Math.sin(t * 1.2) * 0.15   // increased float amplitude (was 0.04)
         : 0;
       grp.position.set(0, kf(KF_POS_Y_BASE, p) + floatY, 0);
       grp.rotation.z = 0;
@@ -191,10 +208,10 @@ export default function Cookie({ scrollProgress }) {
     } else {
       // Scenes 5-6: cookie rests at plate origin (then fades out)
       grp.position.set(0, 0, 0);
-      // Scene 5 bounce: small settle after impact
+      // Scene 5 bounce: small settle after impact (amplitude scaled up, was 0.12)
       if (p >= 0.65 && p < 0.72) {
         const bounceT  = localT(p, 0.65, 0.72);
-        const settle   = Math.exp(-bounceT * 6) * Math.abs(Math.sin(bounceT * Math.PI * 3)) * 0.12;
+        const settle   = Math.exp(-bounceT * 6) * Math.abs(Math.sin(bounceT * Math.PI * 3)) * 0.5;
         grp.position.y = settle;
       }
       grp.rotation.z = 0;

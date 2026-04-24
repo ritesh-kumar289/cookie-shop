@@ -65,8 +65,8 @@ export default function CookiesPlate({ scrollProgress }) {
       }
     });
 
-    // ── Scale ─────────────────────────────────────────────────────────────
-    grp.scale.setScalar(1.2);
+    // ── Scale: 20× larger so the plate of cookies is clearly visible ─────────
+    grp.scale.setScalar(20);
 
     // ── Showcase slow rotation (only when fully visible) ──────────────────
     if (p >= 0.75) {

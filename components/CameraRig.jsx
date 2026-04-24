@@ -61,7 +61,15 @@ export default function CameraRig({ scrollProgress }) {
     const p = scrollProgress.current;
     const { pos, target } = lerpKeyframes(p);
 
-    _targetPos.set(pos[0], pos[1], pos[2]);
+    // ── Parallax "moving down" feel ───────────────────────────────────────
+    // The camera subtly descends as scroll progresses (max −0.5 units over
+    // the full journey) so the viewer feels like they are moving deeper into
+    // the scene. We also zoom the FOV in slightly for a cinematic push effect.
+    const parallaxY = -p * 0.5;
+    camera.fov = 45 - p * 6;  // 45° → 39° over the full scroll
+    camera.updateProjectionMatrix(); // must be called after changing fov
+
+    _targetPos.set(pos[0], pos[1] + parallaxY, pos[2]);
     _lookTarget.set(target[0], target[1], target[2]);
 
     // Smooth camera position (lerp factor 0.05 ≈ cinematic lag)
@@ -70,8 +78,6 @@ export default function CameraRig({ scrollProgress }) {
     // Smooth lookAt
     currentLookAt.current.lerp(_lookTarget, 0.05);
     camera.lookAt(currentLookAt.current);
-
-    camera.updateProjectionMatrix();
   });
 
   return null;
