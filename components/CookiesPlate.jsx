@@ -1,16 +1,11 @@
 /**
  * CookiesPlate.jsx
  *
- * Multiple cookies on a cork board plate — appears at the end of the roll
- * (Scene 5 "IMPACT") and stays through Scene 6 "THE SHOWCASE".
+ * Multiple cookies on a cork board plate — appears at the end of the roll.
  *
- *  0.00 – 0.65  invisible (opacity 0)
- *  0.65 – 0.75  fade in (single cookie rolls in and "lands")
- *  0.75 – 1.00  fully visible, gentle slow rotation, hero showcase
- *
- * Camera at this stage (see CameraRig.jsx):
- *   0.80 → [2, 3, 2]   angled hero shot
- *   1.00 → [0.5, 0.5, 2] macro close-up
+ *  0.00 – 0.76  invisible (opacity 0)
+ *  0.76 – 0.87  fade in (single cookie rolls in and "lands")
+ *  0.87 – 1.00  fully visible, gentle slow rotation, hero showcase
  */
 
 import { useRef } from 'react';
@@ -30,16 +25,15 @@ function localT(p, a, b) {
 }
 
 // ── Impact shake params ───────────────────────────────────────────────────────
-// A brief position/rotation jolt at the moment the cookie "hits" the plate.
-const IMPACT_PROGRESS = 0.66;  // scroll progress value of the impact moment
-const SHAKE_WIN = 0.04;   // window over which shake decays
+const IMPACT_PROGRESS = 0.77;
+const SHAKE_WIN = 0.04;
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function CookiesPlate({ scrollProgress }) {
   const groupRef    = useRef();
   const prevPRef    = useRef(0);
-  const shakeRef    = useRef(0);   // shake intensity 0-1
+  const shakeRef    = useRef(0);
   const { scene }   = useGLTF('/models/cookies.glb');
 
   useFrame((_, delta) => {
@@ -49,9 +43,9 @@ export default function CookiesPlate({ scrollProgress }) {
 
     // ── Opacity ───────────────────────────────────────────────────────────
     let opacity = 0;
-    if (p >= 0.65 && p < 0.75) {
-      opacity = localT(p, 0.65, 0.75);
-    } else if (p >= 0.75) {
+    if (p >= 0.76 && p < 0.87) {
+      opacity = localT(p, 0.76, 0.87);
+    } else if (p >= 0.87) {
       opacity = 1;
     }
 
@@ -65,39 +59,37 @@ export default function CookiesPlate({ scrollProgress }) {
       }
     });
 
-    // ── Scale: 20× larger so the plate of cookies is clearly visible ─────────
+    // ── Scale ─────────────────────────────────────────────────────────────
     grp.scale.setScalar(20);
 
     // ── Showcase slow rotation (only when fully visible) ──────────────────
-    if (p >= 0.75) {
-      grp.rotation.y += delta * 0.12;
+    if (p >= 0.87) {
+      grp.rotation.y += delta * 0.08;
     }
 
-    // ── Impact camera shake (triggered once when crossing IMPACT_PROGRESS) ───────
+    // ── Impact camera shake ───────────────────────────────────────────────
     const prevP = prevPRef.current;
     const crossedForward  = prevP < IMPACT_PROGRESS && p >= IMPACT_PROGRESS;
     const crossedBackward = prevP >= IMPACT_PROGRESS && p < IMPACT_PROGRESS;
 
     if (crossedForward || crossedBackward) {
-      shakeRef.current = 1.0;  // reset shake intensity
+      shakeRef.current = 1.0;
     }
     prevPRef.current = p;
 
-    // Decay and apply shake to group position
     if (shakeRef.current > 0.001) {
       shakeRef.current = Math.max(0, shakeRef.current - delta / SHAKE_WIN);
       const s   = shakeRef.current;
-      const amp = s * 0.06;
+      const amp = s * 0.05;
       grp.position.set(
         (Math.random() - 0.5) * amp,
-        Math.abs(Math.random()) * amp * 0.5,
-        (Math.random() - 0.5) * amp * 0.3
+        Math.abs(Math.random()) * amp * 0.4,
+        (Math.random() - 0.5) * amp * 0.25
       );
     } else {
-      // Slight settle bounce after impact lands
-      if (p >= 0.65 && p < 0.80) {
-        const settleT = localT(p, 0.65, 0.80);
-        const settle  = Math.exp(-settleT * 5) * Math.abs(Math.sin(settleT * Math.PI * 2.5)) * 0.05;
+      if (p >= 0.76 && p < 0.90) {
+        const settleT = localT(p, 0.76, 0.90);
+        const settle  = Math.exp(-settleT * 5) * Math.abs(Math.sin(settleT * Math.PI * 2.5)) * 0.04;
         grp.position.set(0, settle, 0);
       } else {
         grp.position.set(0, 0, 0);

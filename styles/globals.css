@@ -1,12 +1,23 @@
 :root {
-  --color-primary-dark: #5A2E1F;
-  --color-deep-brown: #3E1F14;
+  --color-bg: #FFF8F1;
+  --color-surface: #F4E9DA;
+
+  --color-primary: #B8742A;
+  --color-primary-dark: #8C4A1E;
+
+  --color-accent: #D8A45A;
+  --color-accent-soft: #F1C27D;
+
+  --color-text-main: #3E1F14;
+  --color-text-light: #7A4A2E;
+
+  --color-olive: #7A7F4B;
+  --color-chip: #2B1A12;
+
+  /* legacy aliases kept for compatibility */
   --color-caramel: #B8742A;
   --color-golden: #D8A45A;
   --color-cream: #F4E9DA;
-  --color-olive: #7A7F4B;
-  --color-light-beige: #E8D8C3;
-  --color-chip-dark: #2B1A12;
 }
 
 *,
@@ -23,13 +34,47 @@ html {
 }
 
 body {
-  background: #0a0704;
-  color: var(--color-cream);
-  font-family: 'Georgia', 'Times New Roman', serif;
+  background: radial-gradient(
+    circle at center,
+    #feefdc 0%,
+    #f5dcc2 45%,
+    #e5c8a9 100%
+  );
+  background-attachment: fixed;
+  color: var(--color-text-main);
+  font-family: 'Inter', 'Poppins', 'Georgia', sans-serif;
   overflow-x: hidden;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Soft grain overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+  opacity: 0.55;
+  mix-blend-mode: multiply;
+}
+
+/* Soft vignette */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 55%,
+    rgba(139, 90, 43, 0.18) 100%
+  );
 }
 
 canvas {
@@ -37,12 +82,12 @@ canvas {
 }
 
 a {
-  color: var(--color-golden);
+  color: var(--color-primary);
   text-decoration: none;
 }
 
 a:hover {
-  color: var(--color-caramel);
+  color: var(--color-accent);
 }
 
 /* ─── Layout ──────────────────────────────────────────────── */
@@ -68,7 +113,7 @@ a:hover {
 
 .scroll-container {
   position: relative;
-  height: 700vh;
+  height: 900vh;
   z-index: 2;
   pointer-events: none;
 }
@@ -77,16 +122,14 @@ a:hover {
 
 .brand-logo {
   position: fixed;
-  top: 2rem;
+  top: 1.5rem;
   left: 50%;
   transform: translateX(-50%);
   z-index: 20;
   pointer-events: none;
-  letter-spacing: 0.35em;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  color: var(--color-golden);
-  opacity: 0.75;
+  width: 140px;
+  height: auto;
+  filter: drop-shadow(0 2px 12px rgba(184, 116, 42, 0.25));
 }
 
 /* ─── Scroll hint ─────────────────────────────────────────── */
@@ -102,29 +145,30 @@ a:hover {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  color: var(--color-cream);
-  opacity: 0.5;
-  font-size: 0.65rem;
-  letter-spacing: 0.25em;
+  color: var(--color-text-light);
+  opacity: 0.6;
+  font-size: 0.6rem;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
+  font-family: 'Inter', sans-serif;
 }
 
 .scroll-hint-line {
   width: 1px;
   height: 40px;
-  background: linear-gradient(to bottom, var(--color-golden), transparent);
+  background: linear-gradient(to bottom, var(--color-accent), transparent);
   animation: scrollPulse 1.8s ease-in-out infinite;
 }
 
 @keyframes scrollPulse {
   0%,
   100% {
-    opacity: 0.2;
+    opacity: 0.25;
     transform: scaleY(1);
   }
   50% {
-    opacity: 0.85;
-    transform: scaleY(1.12);
+    opacity: 1;
+    transform: scaleY(1.15);
   }
 }
 
@@ -142,34 +186,35 @@ a:hover {
 }
 
 .scene-label h1 {
+  font-family: 'Playfair Display', 'Cormorant Garamond', 'DM Serif Display', Georgia, serif;
   font-size: clamp(2.4rem, 8vw, 6rem);
-  font-weight: 300;
-  letter-spacing: 0.08em;
-  color: var(--color-cream);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: var(--color-text-main);
   line-height: 1.1;
   text-shadow:
-    0 0 60px rgba(184, 116, 42, 0.45),
-    0 2px 24px rgba(0, 0, 0, 0.85);
+    0 0 60px rgba(184, 116, 42, 0.2),
+    0 2px 18px rgba(62, 31, 20, 0.12);
 }
 
 .scene-label .tagline {
-  font-size: clamp(0.85rem, 2.2vw, 1.2rem);
+  font-family: 'Inter', 'Poppins', sans-serif;
+  font-size: clamp(0.85rem, 2.2vw, 1.15rem);
   font-style: italic;
-  color: var(--color-light-beige);
+  color: var(--color-text-light);
   margin-top: 0.85rem;
-  letter-spacing: 0.05em;
-  opacity: 0.88;
-  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.7);
+  letter-spacing: 0.06em;
+  opacity: 0.9;
 }
 
 .scene-label p {
-  font-size: clamp(0.8rem, 1.8vw, 1rem);
-  letter-spacing: 0.22em;
+  font-family: 'Inter', 'Poppins', sans-serif;
+  font-size: clamp(0.75rem, 1.6vw, 0.95rem);
+  letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: var(--color-caramel);
+  color: var(--color-primary);
   margin-top: 1rem;
-  opacity: 0.9;
-  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.7);
+  opacity: 0.85;
 }
 
 /* ─── Progress dots ───────────────────────────────────────── */
@@ -190,13 +235,13 @@ a:hover {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--color-caramel);
-  opacity: 0.3;
+  background: var(--color-primary);
+  opacity: 0.25;
   transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
 .progress-dot.active {
   opacity: 1;
   transform: scale(1.7);
-  background: var(--color-golden);
+  background: var(--color-accent);
 }

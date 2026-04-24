@@ -3,16 +3,16 @@ import { ContactShadows, Environment } from '@react-three/drei';
 export default function Lighting() {
   return (
     <>
-      {/* Ambient fill */}
-      <ambientLight intensity={0.3} />
+      {/* Ambient fill — warm cream */}
+      <ambientLight intensity={0.45} color="#F4E9DA" />
 
-      {/* Key light — warm golden */}
+      {/* Key light — warm golden bakery top-left */}
       <directionalLight
-        position={[5, 8, 5]}
-        color="#D8A45A"
-        intensity={2.2}
+        position={[4, 10, 6]}
+        color="#E8C07A"
+        intensity={2.8}
         castShadow
-        shadow-mapSize={[1024, 1024]}
+        shadow-mapSize={[2048, 2048]}
         shadow-camera-near={0.5}
         shadow-camera-far={30}
         shadow-camera-left={-8}
@@ -21,34 +21,43 @@ export default function Lighting() {
         shadow-camera-bottom={-8}
       />
 
-      {/* Fill light — soft cream */}
+      {/* Fill light — soft cream from opposite side */}
       <directionalLight
-        position={[-3, 4, -3]}
-        color="#F4E9DA"
-        intensity={0.8}
+        position={[-4, 5, -3]}
+        color="#FBE8CC"
+        intensity={1.0}
       />
 
-      {/* Rim light — caramel */}
+      {/* Rim light — deep caramel from behind */}
       <pointLight
-        position={[2, 2, 2]}
-        color="#B8742A"
-        intensity={1.5}
-        distance={14}
+        position={[-2, 3, -4]}
+        color="#C87941"
+        intensity={2.0}
+        distance={18}
         decay={2}
       />
 
-      {/* Ground contact shadow — scale expanded for the larger model footprint */}
-      <ContactShadows
-        position={[0, -2, 0]}
-        opacity={0.45}
-        scale={50}
-        blur={3.5}
-        far={20}
-        color="#2B1A12"
+      {/* Under-fill — very subtle warm bounce */}
+      <pointLight
+        position={[0, -2, 2]}
+        color="#F1C27D"
+        intensity={0.5}
+        distance={10}
+        decay={2}
       />
 
-      {/* Warm HDRI environment */}
-      <Environment preset="sunset" />
+      {/* Ground contact shadow */}
+      <ContactShadows
+        position={[0, -1.5, 0]}
+        opacity={0.35}
+        scale={40}
+        blur={4}
+        far={16}
+        color="#5A2E1F"
+      />
+
+      {/* Warm HDRI environment — sunset for golden reflections */}
+      <Environment preset="sunset" background={false} />
     </>
   );
 }

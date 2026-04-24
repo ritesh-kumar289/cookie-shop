@@ -7,15 +7,15 @@ gsap.registerPlugin(ScrollTrigger);
 
 export default function ScrollController({ scrollProgress }) {
   useEffect(() => {
-    // ── Lenis smooth scroll ─────────────────────────────────────────────────
+    // ── Lenis smooth scroll — tuned for cinematic inertia ──────────────────
     const lenis = new Lenis({
-      duration: 1.4,
+      duration: 2.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: 'vertical',
       gestureOrientation: 'vertical',
       smoothWheel: true,
-      wheelMultiplier: 1,
-      touchMultiplier: 2,
+      wheelMultiplier: 0.7,   // slower scroll sensitivity
+      touchMultiplier: 1.4,
     });
 
     // ── GSAP ScrollTrigger → updates scrollProgress ref ────────────────────
@@ -26,7 +26,7 @@ export default function ScrollController({ scrollProgress }) {
         trigger: '#scroll-container',
         start: 'top top',
         end: 'bottom bottom',
-        scrub: 2,
+        scrub: 1.5,           // smoother scrub as spec requires
         onUpdate: (self) => {
           scrollProgress.current = self.progress;
         },

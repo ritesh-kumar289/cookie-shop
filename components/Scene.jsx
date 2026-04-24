@@ -43,7 +43,7 @@ export default function Scene({ scrollProgress }) {
           outputColorSpace: THREE.SRGBColorSpace,
         }}
         camera={{ fov: 45, near: 0.1, far: 100, position: [0, 5, 0.1] }}
-        style={{ width: '100%', height: '100%', background: '#0a0704' }}
+        style={{ width: '100%', height: '100%', background: 'transparent' }}
         shadows
       >
         <Suspense fallback={null}>
@@ -51,7 +51,7 @@ export default function Scene({ scrollProgress }) {
           <CookiesPlate scrollProgress={scrollProgress} />
           <Cookie scrollProgress={scrollProgress} />
           <CameraRig scrollProgress={scrollProgress} />
-          <Effects />
+          <Effects scrollProgress={scrollProgress} />
         </Suspense>
       </Canvas>
     </CanvasErrorBoundary>
