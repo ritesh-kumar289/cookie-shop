@@ -456,14 +456,12 @@ a:hover {
 .jar-overlay {
   position: fixed;
   bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;                  /* full-width container; img centred inside */
+  width: 100vw;             /* must be explicit — "auto" on fixed+abs-child = 0 px */
   height: 48vh;
   overflow: hidden;
   z-index: 5;
   pointer-events: none;
-  width: auto;
-  max-width: 100vw;
 }
 
 .jar-overlay img {
@@ -531,13 +529,10 @@ a:hover {
 
 /* Circular canvas window — hides the square WebGL canvas corners */
 .cookie-loader-canvas {
-  width: clamp(140px, 20vw, 200px);
-  height: clamp(140px, 20vw, 200px);
-  border-radius: 50%;
-  overflow: hidden;
-  box-shadow:
-    0 0 0 3px rgba(184, 116, 42, 0.14),
-    0 8px 40px rgba(184, 116, 42, 0.15);
+  width: clamp(110px, 16vw, 150px);
+  height: clamp(110px, 16vw, 150px);
+  /* No border-radius: canvas is transparent; cookie floats on loader bg */
+  background: transparent;
 }
 
 .cookie-loader-label {

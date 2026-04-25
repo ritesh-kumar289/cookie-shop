@@ -68,10 +68,12 @@ function SpinningCookie() {
     return c;
   }, [scene]);
 
-  // Spin on Z-axis — looks like a coin/wheel rolling in place
+  // Cookie stands UPRIGHT (rotation.x = π/2) — same as Cookie.jsx Scene 1 hero.
+  // Y-axis rotation on an upright cookie = wheel rolling in place (not a coin flip).
   useFrame((_, delta) => {
     if (groupRef.current) {
-      groupRef.current.rotation.z -= delta * 2.8;
+      groupRef.current.rotation.x = Math.PI / 2; // always upright, like Scene 1
+      groupRef.current.rotation.y += delta * 2.6; // wheel-rolling spin
     }
   });
 
@@ -125,11 +127,13 @@ export default function CookieLoader() {
       <div className="cookie-loader-canvas">
         <Canvas
           frameloop="always"
-          gl={{ antialias: true }}
-          camera={{ fov: 45, near: 0.1, far: 20, position: [0, 0, 2.8] }}
-          style={{ width: '100%', height: '100%' }}
+          gl={{ antialias: true, alpha: true }}
+          camera={{ fov: 45, near: 0.1, far: 20, position: [0, 0.2, 2.2] }}
+          style={{ width: '100%', height: '100%', background: 'transparent' }}
         >
-          <color attach="background" args={['#FFF8F1']} />
+          {/* No <color attach="background"> — canvas is transparent so
+              the cookie floats on the cream loader overlay with no visible
+              canvas boundary or ring */}
           <ambientLight intensity={2.2} />
           <directionalLight position={[3, 4, 3]} intensity={2.8} castShadow={false} />
           <Suspense fallback={null}>
