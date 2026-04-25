@@ -58,22 +58,14 @@ function kf(frames, progress) {
   return last.v;
 }
 
-// ── Circular arc path (Scene 4): center → left arc → front → right arc → center ─
-// The arc starts and ends at (0,0,0) so it is perfectly continuous with the
-// cookie's resting position at the end of Scene 3 — no teleport.
-// Control points at ±2.2/Z=1.9 — noticeably wider than the original (±2.0/Z=1.8)
-// but more measured than the previous push (±3.0/Z=2.4).
+// ── Circular arc path (Scene 4): center → arc forward-right → settle on right ──
+// Cookie sweeps from centre to the right side of the screen in a smooth arc,
+// then rests at the far-right position for the rest of the experience.
 const ROLL_CURVE = new THREE.CubicBezierCurve3(
-   new THREE.Vector3( 0.0, 0, 0.0),
-
-  // stronger pull left (entry)
-  new THREE.Vector3(-2.0, 0, 1.5),
-
-  // MUCH stronger pull right (exit push)
-  new THREE.Vector3( 3.2, 0, 1.7),
-
-  // 🔥 key change — end on RIGHT instead of center
-  new THREE.Vector3( 1.2, 0, 0.1)  // return to center — ready for impact
+  new THREE.Vector3(0.0, 0, 0.0),  // start: centre
+  new THREE.Vector3(0.4, 0, 1.6),  // arc forward
+  new THREE.Vector3(1.6, 0, 1.0),  // pull right
+  new THREE.Vector3(2.0, 0, 0.0)   // final: right side
 );
 
 // Pre-compute curve length once
@@ -87,24 +79,24 @@ const KF_SCALE = [
   { p: 0.12, v: 1.4  }, // holds flat
   { p: 0.28, v: 1.6  }, // grows slightly as it stands up
   { p: 0.44, v: 0.75 }, // arc start — small so it never looms large near camera
-  { p: 0.76, v: 0.70 }, // end of arc — keep consistent size
-  { p: 1.00, v: 0.70 },
+  { p: 0.76, v: 1.0  }, // settled on right side — grow to hero size
+  { p: 1.00, v: 1.0  },
 ];
 
 // rotX keyframes — NEW ORDER: flat first, then upright, then roll
 //   p=0.00 → 0     : cookie lies FLAT on the plate (face-up)
 //   p=0.12 → 0     : holds flat
 //   p=0.28 → π/2   : stands upright (like a wheel / disc trophy)
-//   p=0.44 → π/2   : stays upright for S-curve roll
-//   — impact / rest keyframes unchanged —
+//   p=0.44 → π/2   : stays upright for arc roll
+//   p=0.76 → π/2   : still upright as it settles on the right side
+//   p=1.00 → π/3   : slight forward tilt at final resting pose
 const KF_ROT_X = [
   { p: 0.00, v: 0           }, // flat on plate
   { p: 0.12, v: 0           }, // holds flat
   { p: 0.28, v: Math.PI / 2 }, // stands upright
   { p: 0.44, v: Math.PI / 2 }, // upright — roll start
-  { p: 0.80, v: Math.PI / 4 }, // partly laid by impact
-  { p: 0.87, v: 0           },
-  { p: 1.00, v: 0           },
+  { p: 0.76, v: Math.PI / 2 }, // upright at right-side settle
+  { p: 1.00, v: Math.PI / 3 }, // gentle tilt at rest
 ];
 
 // Y base position keyframes
@@ -249,7 +241,8 @@ export default function Cookie({ scrollProgress, mouseRef, presentationEnabled }
     prevScrollProgressRef.current = p;
 
     // ── Visibility ────────────────────────────────────────────────────────
-    grp.visible = p < 0.75;
+    // Cookie is always visible — it stays on the right side after the arc.
+    grp.visible = true;
 
     // ── Scale ─────────────────────────────────────────────────────────────
     const sc = kf(KF_SCALE, p);
@@ -271,7 +264,7 @@ export default function Cookie({ scrollProgress, mouseRef, presentationEnabled }
     }
     // Scene 4+: rotation.y driven by roll tangent below
 
-    // ── Scene 4: ROLL along S-curve (0.44 → 0.76) ────────────────────────
+    // ── Scene 4: ROLL along right-side arc (0.44 → 0.76) ─────────────────
     if (p >= 0.44 && p < 0.76) {
       const rollT   = localT(p, 0.44, 0.76);
       const point   = ROLL_CURVE.getPointAt(rollT);
@@ -326,14 +319,13 @@ export default function Cookie({ scrollProgress, mouseRef, presentationEnabled }
       mouseYRef.current = newFaceX;
 
     } else {
-      // Scenes 5-6: cookie rests at plate origin then fades out
-      grp.position.set(0, 0, 0);
-      if (p >= 0.76 && p < 0.84) {
-        const bounceT = localT(p, 0.76, 0.84);
-        const settle  = Math.exp(-bounceT * 5) * Math.abs(Math.sin(bounceT * Math.PI * 3)) * 0.3;
-        grp.position.y = settle;
-      }
+      // Scenes 5-6: cookie stays at its final right-side resting position.
+      // The CookiesPlate showcase plays in the centre while the single cookie
+      // remains parked on the right as a decorative element.
+      const finalPt = ROLL_CURVE.getPointAt(1);
+      grp.position.set(finalPt.x, kf(KF_POS_Y_BASE, p), finalPt.z);
       grp.rotation.z = 0;
+      grp.rotation.y = 0;
       tiltRef.current = lerp(tiltRef.current, 0, 0.08);
     }
   });
