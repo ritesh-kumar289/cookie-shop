@@ -11,7 +11,7 @@ const ScrollController = dynamic(() => import('../components/ScrollController'),
 // Filled glass jar with chocolate-chip cookies; white background eliminated via
 // mix-blend-mode: multiply in CSS (white × warm-cream page bg = transparent).
 const JAR_IMG_URL =
-  'https://github.com/user-attachments/assets/3cb60bb6-ad64-40d3-958c-c0fe4634ac0b';
+  'https://github.com/user-attachments/assets/22a82e26-e579-4038-9ea6-4c876b6cde3c';
 
 // ─── Scene copy ───────────────────────────────────────────────────────────────
 // 5 scenes — no emoji icons, just heading + body text from the brief.

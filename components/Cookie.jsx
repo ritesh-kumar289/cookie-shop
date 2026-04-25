@@ -104,9 +104,18 @@ const KF_ROT_X = [
 ];
 
 // Y float base position
+// Scene 1 (p 0–0.18): cookie is raised by +0.3 world-units so it appears at
+// screen-centre (camera looks at y=0.3, so placing the cookie at y=0.3 puts it
+// at NDC 0 → 50 % from viewport top).  This ensures the cookie's centre sits
+// just ABOVE the jar rim (~52 % from top) so ~55 % of the cookie disk shows
+// above the glass opening — the "topmost cookie emerging from the jar" look.
+// The elevation smoothly transitions back to 0 between scene-1 end (p=0.18)
+// and scene-3 start (p=0.30).  The jar overlay also fades out at p=0.18–0.22
+// so the drop is never visible.
 const KF_POS_Y_BASE = [
-  { p: 0.00, v: 0   },
-  { p: 0.30, v: 0   },
+  { p: 0.00, v: 0.3 },  // elevated: cookie at screen-centre above jar rim
+  { p: 0.18, v: 0.3 },  // holds through scene 1
+  { p: 0.30, v: 0   },  // back to origin by scene 3 (jar gone by p=0.22)
   { p: 0.44, v: 0.2 },
   { p: 0.76, v: 0   },
   { p: 1.00, v: 0   },
