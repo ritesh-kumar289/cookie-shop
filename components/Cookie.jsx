@@ -58,13 +58,16 @@ function kf(frames, progress) {
   return last.v;
 }
 
-// ── S-curve path (full roll: Scene 4 through 4B) ─────────────────────────────
-// Bezier control points for the rolling S-curve in the XZ plane.
+// ── Circular arc path (Scene 4): left → in front of camera → right ────────────
+// The cookie sweeps in a wide symmetric arc from the left side of the frame,
+// arcs in front of the camera (peak Z ≈ 2.8), and exits to the right.
+// Control points chosen so the arc looks like a horizontal semi-circle from the
+// camera's perspective.
 const ROLL_CURVE = new THREE.CubicBezierCurve3(
-  new THREE.Vector3( 0,    0,  0),
-  new THREE.Vector3( 1.2,  0,  1.4),
-  new THREE.Vector3(-1.2,  0,  2.8),
-  new THREE.Vector3( 0,    0,  4.2)
+  new THREE.Vector3(-3.2,  0,  0.0),  // enter: far-left
+  new THREE.Vector3(-2.2,  0,  2.8),  // pull left-forward
+  new THREE.Vector3( 2.2,  0,  2.8),  // pull right-forward (symmetric)
+  new THREE.Vector3( 3.2,  0,  0.0)   // exit: far-right
 );
 
 // Pre-compute curve length once
@@ -74,12 +77,12 @@ const ROLL_CURVE_LENGTH = ROLL_CURVE.getLength();
 
 // ── Scale keyframes ────────────────────────────────────────────────────────────
 const KF_SCALE = [
-  { p: 0.00, v: 1.4 }, // cookie on plate — fits nicely inside the dish
-  { p: 0.12, v: 1.4 }, // holds flat
-  { p: 0.28, v: 1.6 }, // grows slightly as it stands up
-  { p: 0.44, v: 1.0 }, // roll start — scaled down so it doesn't loom too large
-  { p: 0.76, v: 0.85 }, // smaller still as it nears camera (Moment of Impact)
-  { p: 1.00, v: 0.85 },
+  { p: 0.00, v: 1.4  }, // cookie on plate — fits nicely inside the dish
+  { p: 0.12, v: 1.4  }, // holds flat
+  { p: 0.28, v: 1.6  }, // grows slightly as it stands up
+  { p: 0.44, v: 0.75 }, // arc start — small so it never looms large near camera
+  { p: 0.76, v: 0.70 }, // end of arc — keep consistent size
+  { p: 1.00, v: 0.70 },
 ];
 
 // rotX keyframes — NEW ORDER: flat first, then upright, then roll

@@ -1,4 +1,4 @@
-import { Suspense, Component } from 'react';
+import { Suspense, Component, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
 import Lighting from './Lighting';
@@ -33,7 +33,18 @@ class CanvasErrorBoundary extends Component {
   }
 }
 
-export default function Scene({ scrollProgress, mouseRef, presentationEnabled }) {
+// Fires onReady after all suspended children inside the same boundary have
+// resolved.  Lives inside Suspense so it only renders — and therefore only
+// calls onReady — once every model/texture promise has settled.
+function ReadySignal({ onReady }) {
+  useEffect(() => {
+    onReady?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
+}
+
+export default function Scene({ scrollProgress, mouseRef, presentationEnabled, onReady }) {
   return (
     <CanvasErrorBoundary>
       <Canvas
@@ -62,6 +73,8 @@ export default function Scene({ scrollProgress, mouseRef, presentationEnabled })
           <Cookie scrollProgress={scrollProgress} mouseRef={mouseRef} presentationEnabled={presentationEnabled} />
           <CameraRig scrollProgress={scrollProgress} mouseRef={mouseRef} />
           <Effects scrollProgress={scrollProgress} />
+          {/* Signal the page that all models/assets have finished loading */}
+          <ReadySignal onReady={onReady} />
         </Suspense>
       </Canvas>
     </CanvasErrorBoundary>

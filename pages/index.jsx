@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { AnimatePresence, motion } from 'framer-motion';
 import Head from 'next/head';
@@ -122,6 +122,9 @@ export default function Home() {
   const [presentationEnabled, setPresentationEnabled] = useState(true);
   // Track last presentationEnabled to avoid unnecessary state updates
   const prevPERef = useRef(true);
+  // True once the main 3D Scene's Suspense boundary has resolved (all models loaded)
+  const [sceneReady, setSceneReady] = useState(false);
+  const onSceneReady = useCallback(() => setSceneReady(true), []);
 
   // Track cursor position so 3D components can apply mouse-parallax effects
   useEffect(() => {
@@ -187,7 +190,7 @@ export default function Home() {
       </Head>
 
       {/* Cookie loader — full-screen overlay shown while GLB / assets load */}
-      <CookieLoader />
+      <CookieLoader sceneReady={sceneReady} />
 
       {/* Fixed 3D canvas */}
       <div className="canvas-wrapper">
@@ -195,6 +198,7 @@ export default function Home() {
           scrollProgress={scrollProgress}
           mouseRef={mouseRef}
           presentationEnabled={presentationEnabled}
+          onReady={onSceneReady}
         />
       </div>
 

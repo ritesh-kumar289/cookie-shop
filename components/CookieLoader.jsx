@@ -21,7 +21,7 @@ import * as THREE from 'three';
 // Minimum time (ms) the loader is displayed — prevents a flash on fast/cached loads
 const MIN_SHOW_MS  = 1200;
 // Hard maximum (ms) before the loader force-dismisses itself (safety net)
-const MAX_SHOW_MS  = 6000;
+const MAX_SHOW_MS  = 10000;
 // Fade-out transition duration (ms) — must match CSS transition
 const FADE_MS      = 700;
 
@@ -86,8 +86,8 @@ function SpinningCookie() {
 
 // ── Loader overlay ─────────────────────────────────────────────────────────────
 
-export default function CookieLoader() {
-  const { progress, active } = useProgress();
+export default function CookieLoader({ sceneReady = false }) {
+  const { progress } = useProgress();
   const [fadingOut, setFadingOut] = useState(false);
   const [hidden,    setHidden]    = useState(false);
   const mountTimeRef = useRef(Date.now());
@@ -100,14 +100,14 @@ export default function CookieLoader() {
     setTimeout(() => setHidden(true), FADE_MS);
   }
 
-  // Dismiss when loading completes (respecting MIN_SHOW_MS)
+  // Dismiss once the main scene signals all models are loaded AND minimum time has passed
   useEffect(() => {
-    if (progress < 100 || active) return;
+    if (!sceneReady) return;
     const elapsed   = Date.now() - mountTimeRef.current;
     const remaining = Math.max(0, MIN_SHOW_MS - elapsed);
     const t = setTimeout(dismiss, remaining);
     return () => clearTimeout(t);
-  }, [progress, active]);
+  }, [sceneReady]);
 
   // Hard cap: dismiss after MAX_SHOW_MS regardless (handles cached / no-asset pages)
   useEffect(() => {
