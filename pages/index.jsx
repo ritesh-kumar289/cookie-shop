@@ -7,19 +7,19 @@ import Head from 'next/head';
 const Scene = dynamic(() => import('../components/Scene'), { ssr: false });
 const ScrollController = dynamic(() => import('../components/ScrollController'), { ssr: false });
 
-// ─── Cookie jar PNG (transparent glass jar) ───────────────────────────────────
-// Hosted on GitHub user-attachments CDN; loaded client-side by the browser.
+// ─── Cookie jar PNG ────────────────────────────────────────────────────────────
+// Filled glass jar with chocolate-chip cookies; white background eliminated via
+// mix-blend-mode: multiply in CSS (white × warm-cream page bg = transparent).
 const JAR_IMG_URL =
-  'https://github.com/user-attachments/assets/e7daf5ae-6151-4dd6-b681-28c297a944f0';
+  'https://github.com/user-attachments/assets/3cb60bb6-ad64-40d3-958c-c0fe4634ac0b';
 
 // ─── Scene copy ───────────────────────────────────────────────────────────────
-// 5 scenes matching the provided brief headings, body text and emoji icons.
+// 5 scenes — no emoji icons, just heading + body text from the brief.
 const SCENES = [
   {
     id: 'scene1',
     startPct: 0,
     endPct: 0.18,
-    emoji: '🍪',
     title: 'The First Glance',
     body: 'From the very first look, Crunch Bites invites you into a world of warmth and indulgence. Each cookie is crafted to be more than just a snack—it\'s an experience that begins with texture, aroma, and visual delight.',
   },
@@ -27,31 +27,27 @@ const SCENES = [
     id: 'scene2',
     startPct: 0.18,
     endPct: 0.36,
-    emoji: '🔥',
     title: 'Crafted for Crunch',
-    body: 'Every Crunch Bites cookie is designed with one goal in mind—perfect crunch. Carefully balanced ingredients and precise baking techniques ensure that every bite delivers a satisfying texture. It\'s not just baking—it\'s craftsmanship, where every detail matters and every crunch is intentional.',
+    body: 'Every Crunch Bites cookie is designed with one goal in mind—perfect crunch. Carefully balanced ingredients and precise baking techniques ensure that every bite delivers a satisfying texture. It\'s not just baking—it\'s craftsmanship.',
   },
   {
     id: 'scene3',
     startPct: 0.36,
     endPct: 0.54,
-    emoji: '🌊',
     title: 'Rolling Into Perfection',
-    body: 'As the cookie moves, it represents the journey from raw ingredients to a perfected creation. Each rotation reflects the transformation process—mixing, shaping, baking, and finishing. This scene symbolizes momentum, refinement, and the pursuit of excellence.',
+    body: 'As the cookie moves, it represents the journey from raw ingredients to a perfected creation. Each rotation reflects the transformation process—mixing, shaping, baking, and finishing.',
   },
   {
     id: 'scene4',
     startPct: 0.54,
     endPct: 0.76,
-    emoji: '💥',
     title: 'The Moment of Impact',
-    body: 'The moment the cookie meets its destination is where everything comes together. Flavor, texture, and craftsmanship collide to create a satisfying experience. This is the point where anticipation turns into reality, where the crunch becomes real and memorable.',
+    body: 'The moment the cookie meets its destination is where everything comes together. Flavor, texture, and craftsmanship collide to create a satisfying experience. This is the point where anticipation turns into reality.',
   },
   {
     id: 'scene5',
     startPct: 0.76,
     endPct: 1.0,
-    emoji: '✨',
     title: 'Made to Be Remembered',
     body: 'Crunch Bites isn\'t just about cookies—it\'s about creating lasting impressions. Every detail, from the ingredients to the final presentation, is designed to leave a mark. With every bite, Crunch Bites delivers not just taste, but a memory worth coming back to.',
   },
@@ -346,11 +342,6 @@ export default function Home() {
               animate="visible"
               exit="exit"
             >
-              {currentScene.emoji && (
-                <motion.p className="scene-emoji" variants={subVariants}>
-                  {currentScene.emoji}
-                </motion.p>
-              )}
               <motion.h1 variants={titleVariants}>{currentScene.title}</motion.h1>
               {currentScene.body && (
                 <motion.p className="scene-body" variants={subVariants}>
