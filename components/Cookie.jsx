@@ -59,8 +59,8 @@ function kf(frames, progress) {
 }
 
 // ── Scene 4 Phase A: circular arc center → left sweep → right side ───────────
-// The cookie starts at center (from Scene 3 spin) and arcs leftward and forward
-// before swinging back to the right side of the screen — the "left to right arc".
+// Same arc radius/shape as before — original timing 0.44–0.76.
+// The cookie arcs leftward and forward then swings back to land on the right.
 const ROLL_CURVE = new THREE.CubicBezierCurve3(
   new THREE.Vector3( 0.0, 0, 0.0),
   new THREE.Vector3(-2.0, 0, 1.5),  // pull left and forward
@@ -71,19 +71,18 @@ const ROLL_CURVE = new THREE.CubicBezierCurve3(
 // Pre-compute curve length once
 const ROLL_CURVE_LENGTH = ROLL_CURVE.getLength();
 
-// Pre-compute the tangent direction at the arc end so Phase B can blend smoothly
-const _arcEndTangent = ROLL_CURVE.getTangentAt(1.0);
-const ARC_FINAL_ROTATION_Y = Math.atan2(_arcEndTangent.x, _arcEndTangent.z);
-
 // ── Scene 4 Phase B: cookie rolls as wheel RIGHT → LEFT ───────────────────────
-// After the arc delivers the cookie to the right side it becomes a rolling wheel.
-// It travels in a straight line from (PHASE_B_START_X, *, PHASE_B_Z) to
-// (PHASE_B_END_X, *, PHASE_B_Z), passing through the screen centre, which is
-// when CookiesPlate is revealed.  The cookie exits off the left edge then hides.
+// Once the arc ends (cookie standing upright at the right side), it rolls as a
+// tyre from right to left, passing the screen centre (where CookiesPlate fades in)
+// and exits off the left edge.  The roll is driven by an INNER spin group whose
+// rotation.y — after the outer group has rotX=π/2 — maps to world-Z rotation,
+// which is the actual axle of the tyre.  This is correct tyre-roll spin (not the
+// "coin flip" that rotation.z produces when rotX=π/2).
 const PHASE_B_START_X =  1.2;  // matches ROLL_CURVE endpoint x
 const PHASE_B_START_Z =  0.1;  // matches ROLL_CURVE endpoint z
-const PHASE_B_END_X   = -3.0;  // off-screen left
-const PHASE_B_SPLIT   =  0.62; // scroll progress where arc ends and Phase B begins
+const PHASE_B_END_X   = -1.8;  // modest off-screen left exit — keeps roll slow
+const PHASE_B_SPLIT   =  0.76; // scroll progress where arc ends and Phase B begins
+const PHASE_B_END     =  0.88; // Phase B finishes, cookie is off-screen left
 
 // ── Keyframe tables ───────────────────────────────────────────────────────────
 
@@ -97,22 +96,13 @@ const KF_SCALE = [
   { p: 1.00, v: 0.70 },
 ];
 
-// rotX keyframes — flat first, then upright, stays upright through Phase B roll
-//   p=0.00 → 0     : cookie lies FLAT on the plate (face-up)
-//   p=0.12 → 0     : holds flat
-//   p=0.28 → π/2   : stands upright (like a wheel / disc trophy)
-//   p=0.44 → π/2   : stays upright for arc roll (Phase A)
-//   p=0.75 → π/2   : still upright at end of wheel-roll Phase B
-//   — impact / rest keyframes unchanged —
+// rotX keyframes — stays upright through the full roll (Phase A + Phase B)
 const KF_ROT_X = [
   { p: 0.00, v: 0           }, // flat on plate
   { p: 0.12, v: 0           }, // holds flat
   { p: 0.28, v: Math.PI / 2 }, // stands upright
-  { p: 0.44, v: Math.PI / 2 }, // upright — roll start
-  { p: 0.75, v: Math.PI / 2 }, // stays upright through Phase B wheel roll
-  { p: 0.80, v: Math.PI / 4 }, // partly laid by impact
-  { p: 0.87, v: 0           },
-  { p: 1.00, v: 0           },
+  { p: 0.44, v: Math.PI / 2 }, // upright — arc roll start
+  { p: 1.00, v: Math.PI / 2 }, // stays upright (cookie hidden after Phase B anyway)
 ];
 
 // Y base position keyframes
@@ -146,7 +136,8 @@ const _mouse = { x: 0, y: 0 };
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function Cookie({ scrollProgress, mouseRef, presentationEnabled }) {
-  const groupRef = useRef();
+  const groupRef    = useRef();
+  const spinGrpRef  = useRef(); // inner group — tyre spin only (Phase B)
   const { scene } = useGLTF('/models/cookie.glb');
   const timeRef = useRef(0);
   const prevScrollProgressRef = useRef(0);
@@ -243,12 +234,13 @@ export default function Cookie({ scrollProgress, mouseRef, presentationEnabled }
   }, [scene]);
 
   useFrame((_, delta) => {
-    if (!groupRef.current) return;
+    if (!groupRef.current || !spinGrpRef.current) return;
     timeRef.current += delta;
 
     const p   = scrollProgress.current;
     const t   = timeRef.current;
     const grp = groupRef.current;
+    const spn = spinGrpRef.current;
 
     // Scroll delta — clamped to prevent sudden jumps
     const MAX_SCROLL_DELTA = 0.04;
@@ -257,7 +249,8 @@ export default function Cookie({ scrollProgress, mouseRef, presentationEnabled }
     prevScrollProgressRef.current = p;
 
     // ── Visibility ────────────────────────────────────────────────────────
-    grp.visible = p < 0.75;
+    // Cookie is hidden once Phase B ends (plate showcase takes over).
+    grp.visible = p < (PHASE_B_END - 0.01);
 
     // ── Scale ─────────────────────────────────────────────────────────────
     const sc = kf(KF_SCALE, p);
@@ -266,87 +259,30 @@ export default function Cookie({ scrollProgress, mouseRef, presentationEnabled }
     // ── Rotation X (tilt) ─────────────────────────────────────────────────
     grp.rotation.x = kf(KF_ROT_X, p);
 
-    // ── Rotation Y ────────────────────────────────────────────────────────
-    if (p < 0.12) {
-      // Scene 1 FLAT: very slow lazy Y spin (face-up cookie, barely rotating)
-      grp.rotation.y += delta * 0.28;
-    } else if (p < 0.28) {
-      // Scene 2 RISING: build momentum as cookie stands up
-      grp.rotation.y += delta * 0.75;
-    } else if (p < 0.44) {
-      // Scene 3 WHEEL: fast wheel spin in place while plate exits
-      grp.rotation.y += delta * 2.4;
-    }
-    // Scene 4+: rotation.y driven by roll tangent below
+    if (p < 0.44) {
+      // ── Scenes 1-3: stationary at origin, gentle float + mouse parallax ──
+      // Reset inner spin group — only used in Phase B
+      spn.rotation.y = 0;
 
-    // ── Scene 4 Phase A: ARC to right side (0.44 → PHASE_B_SPLIT) ───────────
-    if (p >= 0.44 && p < PHASE_B_SPLIT) {
-      const rollT   = localT(p, 0.44, PHASE_B_SPLIT);
-      const point   = ROLL_CURVE.getPointAt(rollT);
-      const tangent = ROLL_CURVE.getTangentAt(rollT);
+      // Rotation Y
+      if (p < 0.12) {
+        grp.rotation.y += delta * 0.28;
+      } else if (p < 0.28) {
+        grp.rotation.y += delta * 0.75;
+      } else {
+        grp.rotation.y += delta * 2.4;
+      }
 
-      // Position follows curve
-      grp.position.set(point.x, kf(KF_POS_Y_BASE, p), point.z);
-
-      // Physically-based rolling rotation:
-      const arcLen          = rollT * ROLL_CURVE_LENGTH;
-      const apparentRadius  = COOKIE_RADIUS_AT_SCALE_1 * sc;
-      grp.rotation.z        = -(arcLen / apparentRadius);
-
-      // Face direction of travel
-      const angle = Math.atan2(tangent.x, tangent.z);
-      grp.rotation.y = angle;
-
-      // Micro bounce — subtle at reduced scale
-      const bounce = Math.abs(Math.sin(rollT * Math.PI * 5)) * 0.12;
-      grp.position.y += bounce;
-
-      // Subtle scroll-direction lean (tilt)
-      const targetTilt = -deltaP * TILT_SENSITIVITY;
-      tiltRef.current = lerp(tiltRef.current, targetTilt, 0.08);
-      grp.rotation.x += tiltRef.current * 0.4;
-
-    // ── Scene 4 Phase B: WHEEL ROLL right → left (PHASE_B_SPLIT → 0.76) ────
-    } else if (p >= PHASE_B_SPLIT && p < 0.76) {
-      const rollT = localT(p, PHASE_B_SPLIT, 0.76);
-
-      // Straight horizontal roll from right side to off-screen left
-      const x = lerp(PHASE_B_START_X, PHASE_B_END_X, rollT);
-      grp.position.set(x, kf(KF_POS_Y_BASE, p), PHASE_B_START_Z);
-
-      // Wheel spin: accumulate Phase A arc distance + Phase B horizontal distance
-      const phaseBDist     = Math.abs(PHASE_B_END_X - PHASE_B_START_X) * rollT;
-      const apparentRadius = COOKIE_RADIUS_AT_SCALE_1 * sc;
-      grp.rotation.z       = -(ROLL_CURVE_LENGTH + phaseBDist) / apparentRadius;
-
-      // Blend rotation.y from arc-end direction to leftward (-π/2) smoothly
-      const yBlend = Math.min(1, rollT * 8); // blend over first ~12% of Phase B
-      grp.rotation.y = lerp(ARC_FINAL_ROTATION_Y, -Math.PI / 2, yBlend);
-
-      // Wheel bounce while rolling
-      const bounce = Math.abs(Math.sin(rollT * Math.PI * 5)) * 0.06;
-      grp.position.y += bounce;
-
-      // Scroll-direction lean
-      const targetTilt = -deltaP * TILT_SENSITIVITY;
-      tiltRef.current  = lerp(tiltRef.current, targetTilt, 0.08);
-      grp.rotation.x  += tiltRef.current * 0.3;
-
-    } else if (p < 0.44) {
-      // Scenes 1-3: stationary at origin (no path movement), gentle float + mouse parallax
-      const floatY = p < 0.28
-        ? Math.sin(t * 1.0) * 0.05
-        : 0;
+      const floatY = p < 0.28 ? Math.sin(t * 1.0) * 0.05 : 0;
       grp.position.set(0, kf(KF_POS_Y_BASE, p) + floatY, 0);
       grp.rotation.z = 0;
       tiltRef.current = lerp(tiltRef.current, 0, 0.06);
 
-      // Micro wobble in scenes 1–2 (flat + rising)
       if (p < 0.28) {
         grp.rotation.z = Math.sin(t * 2.2) * 0.018;
       }
 
-      // ── Face-the-cursor (look-at / cursor-tracking effect) ───────────────
+      // Face-the-cursor (mouse parallax)
       const mx = mouseRef ? mouseRef.current.x : _mouse.x;
       const my = mouseRef ? mouseRef.current.y : _mouse.y;
       const MAX_FACE_Y = p < 0.12 ? 0.18 : 0.14;
@@ -358,14 +294,65 @@ export default function Cookie({ scrollProgress, mouseRef, presentationEnabled }
       mouseXRef.current = newFaceY;
       mouseYRef.current = newFaceX;
 
+    } else if (p < PHASE_B_SPLIT) {
+      // ── Scene 4 Phase A: ARC (0.44 → 0.76) ──────────────────────────────
+      spn.rotation.y = 0;
+
+      const rollT   = localT(p, 0.44, PHASE_B_SPLIT);
+      const point   = ROLL_CURVE.getPointAt(rollT);
+      const tangent = ROLL_CURVE.getTangentAt(rollT);
+
+      grp.position.set(point.x, kf(KF_POS_Y_BASE, p), point.z);
+
+      // Arc roll spin (rotation.z — accepted coin-flip during curved motion)
+      const arcLen         = rollT * ROLL_CURVE_LENGTH;
+      const apparentRadius = COOKIE_RADIUS_AT_SCALE_1 * sc;
+      grp.rotation.z       = -(arcLen / apparentRadius);
+
+      // Face direction of travel
+      grp.rotation.y = Math.atan2(tangent.x, tangent.z);
+
+      // Micro bounce
+      const bounce = Math.abs(Math.sin(rollT * Math.PI * 5)) * 0.12;
+      grp.position.y += bounce;
+
+      // Subtle scroll-direction lean
+      const targetTilt = -deltaP * TILT_SENSITIVITY;
+      tiltRef.current  = lerp(tiltRef.current, targetTilt, 0.08);
+      grp.rotation.x  += tiltRef.current * 0.4;
+
+    } else if (p < PHASE_B_END) {
+      // ── Scene 4 Phase B: TYRE ROLL right → left (0.76 → 0.88) ───────────
+      //
+      // After outer group has rotX = π/2 (upright), the outer group's local Y
+      // axis = world Z.  Therefore spinGrpRef.rotation.y rotates the inner group
+      // around world Z — which is the tyre's axle.  This gives true wheel-roll
+      // spin, NOT the coin-flip caused by rotation.z on the outer group.
+      const rollT  = localT(p, PHASE_B_SPLIT, PHASE_B_END);
+      const x      = lerp(PHASE_B_START_X, PHASE_B_END_X, rollT);
+
+      grp.position.set(x, kf(KF_POS_Y_BASE, p), PHASE_B_START_Z);
+      // Clear Phase A arc spin on outer group; tyre spin lives on inner group
+      grp.rotation.z = 0;
+      // Face toward camera (no Y lean on outer)
+      grp.rotation.y = 0;
+
+      // Tyre spin on inner group.
+      // Rolling LEFT: viewed from front, top goes left → clockwise → negative Y
+      const phaseBDist = (PHASE_B_START_X - PHASE_B_END_X) * rollT; // distance traveled
+      const apparentRadius = COOKIE_RADIUS_AT_SCALE_1 * sc;
+      spn.rotation.y = -(phaseBDist / apparentRadius);
+
+      // Gentle wheel bounce
+      const bounce = Math.abs(Math.sin(rollT * Math.PI * 4)) * 0.05;
+      grp.position.y += bounce;
+
+      tiltRef.current = lerp(tiltRef.current, 0, 0.08);
+
     } else {
-      // Scenes 5-6: cookie rests at plate origin then fades out
+      // ── Showcase (p ≥ 0.88): cookie off-screen, plate takes over ─────────
+      spn.rotation.y = 0;
       grp.position.set(0, 0, 0);
-      if (p >= 0.76 && p < 0.84) {
-        const bounceT = localT(p, 0.76, 0.84);
-        const settle  = Math.exp(-bounceT * 5) * Math.abs(Math.sin(bounceT * Math.PI * 3)) * 0.3;
-        grp.position.y = settle;
-      }
       grp.rotation.z = 0;
       tiltRef.current = lerp(tiltRef.current, 0, 0.08);
     }
@@ -374,26 +361,30 @@ export default function Cookie({ scrollProgress, mouseRef, presentationEnabled }
   return (
     <group ref={groupRef}>
       {/*
-        PresentationControls wraps only the inner primitive group.
-        - enabled: only active during scene 1 (hero landing) so drag-rotate
-          does not conflict with scroll-driven GSAP animation later.
-        - snap: spring-eased return to centre on pointer-up, ensuring the
-          model is back at zero delta-rotation by the time the scroll
-          animation takes over.
-        - global={false}: only activates on pointer events on the mesh itself
-          (not the whole canvas), preventing scroll-wheel interception.
-        - Mouse-cursor parallax (above) still runs independently via useFrame.
+        spinGrpRef — inner group used exclusively for Phase B tyre spin.
+        After the outer group applies rotX=π/2 (cookie stands upright), this
+        inner group's local Y axis = world Z (the tyre axle).  Setting
+        spinGrpRef.rotation.y therefore rotates around world Z — true tyre spin.
       */}
-      <PresentationControls
-        global={false}
-        enabled={!!presentationEnabled}
-        snap={{ mass: 1, tension: 250, friction: 32 }}
-        polar={[-Math.PI / 5, Math.PI / 5]}
-        azimuth={[-Math.PI / 3, Math.PI / 3]}
-        speed={1.4}
-      >
-        <primitive object={clonedScene} />
-      </PresentationControls>
+      <group ref={spinGrpRef}>
+        {/*
+          PresentationControls wraps only the inner primitive group.
+          - enabled: only active during scene 1 (hero landing) so drag-rotate
+            does not conflict with scroll-driven GSAP animation later.
+          - snap: spring-eased return to centre on pointer-up.
+          - global={false}: only activates on pointer events on the mesh itself.
+        */}
+        <PresentationControls
+          global={false}
+          enabled={!!presentationEnabled}
+          snap={{ mass: 1, tension: 250, friction: 32 }}
+          polar={[-Math.PI / 5, Math.PI / 5]}
+          azimuth={[-Math.PI / 3, Math.PI / 3]}
+          speed={1.4}
+        >
+          <primitive object={clonedScene} />
+        </PresentationControls>
+      </group>
     </group>
   );
 }

@@ -87,11 +87,12 @@ export default function CookiesPlate({ scrollProgress }) {
 
     // ── Opacity ───────────────────────────────────────────────────────────
     let opacity = 0;
-    // Begin revealing as the rolling cookie crosses the screen centre (p≈0.66)
-    // so the plate is already fading in when the cookie rolls past it.
-    if (p >= 0.65 && p < 0.76) {
-      opacity = localT(p, 0.65, 0.76);
-    } else if (p >= 0.76) {
+    // The rolling cookie crosses x=0 (screen centre) at roughly p=0.80 during
+    // Phase B.  Reveal the plate from p=0.79 so it appears right as the cookie
+    // rolls past, matching the original "impact + reveal" feel.
+    if (p >= 0.79 && p < 0.88) {
+      opacity = localT(p, 0.79, 0.88);
+    } else if (p >= 0.88) {
       opacity = 1;
     }
 
@@ -116,7 +117,7 @@ export default function CookiesPlate({ scrollProgress }) {
     grp.scale.setScalar(1.5);
 
     // ── Showcase slow rotation (only when fully visible) ──────────────────
-    if (p >= 0.87) {
+    if (p >= 0.88) {
       grp.rotation.y += delta * 0.08;
     }
 
@@ -140,8 +141,8 @@ export default function CookiesPlate({ scrollProgress }) {
         (Math.random() - 0.5) * amp * 0.25
       );
     } else {
-      if (p >= 0.76 && p < 0.90) {
-        const settleT = localT(p, 0.76, 0.90);
+      if (p >= 0.79 && p < 0.92) {
+        const settleT = localT(p, 0.79, 0.92);
         const settle  = Math.exp(-settleT * 5) * Math.abs(Math.sin(settleT * Math.PI * 2.5)) * 0.04;
         grp.position.set(0, settle, 0);
       } else {
