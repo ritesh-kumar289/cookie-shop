@@ -6,7 +6,6 @@ import Cookie from './Cookie';
 import CookiesPlate from './CookiesPlate';
 import CameraRig from './CameraRig';
 import Effects from './Effects';
-import ArchBackdrop from './ArchBackdrop';
 
 // ── Error boundary: catches render/load errors inside the Canvas and prevents
 //    them from crashing the entire page (shows the dark background instead).
@@ -57,7 +56,6 @@ export default function Scene({ scrollProgress, mouseRef, presentationEnabled })
         <color attach="background" args={['#FEF0DC']} />
         <Suspense fallback={null}>
           <Lighting />
-          <ArchBackdrop scrollProgress={scrollProgress} />
           <CookiesPlate scrollProgress={scrollProgress} />
           <Cookie scrollProgress={scrollProgress} mouseRef={mouseRef} presentationEnabled={presentationEnabled} />
           <CameraRig scrollProgress={scrollProgress} mouseRef={mouseRef} />

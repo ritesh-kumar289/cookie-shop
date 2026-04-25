@@ -4,14 +4,15 @@ import { AnimatePresence, motion } from 'framer-motion';
 import Head from 'next/head';
 
 // SSR-disabled: Three.js requires browser APIs
-const Scene = dynamic(() => import('../components/Scene'), { ssr: false });
+const Scene          = dynamic(() => import('../components/Scene'),          { ssr: false });
 const ScrollController = dynamic(() => import('../components/ScrollController'), { ssr: false });
+const CookieLoader   = dynamic(() => import('../components/CookieLoader'),   { ssr: false });
 
 // ─── Cookie jar PNG ────────────────────────────────────────────────────────────
 // Filled glass jar with chocolate-chip cookies; white background eliminated via
 // mix-blend-mode: multiply in CSS (white × warm-cream page bg = transparent).
 const JAR_IMG_URL =
-  'https://github.com/user-attachments/assets/22a82e26-e579-4038-9ea6-4c876b6cde3c';
+  'https://github.com/user-attachments/assets/cbb16217-bad1-4438-8848-83cdb05d0e46';
 
 // ─── Scene copy ───────────────────────────────────────────────────────────────
 // 5 scenes — no emoji icons, just heading + body text from the brief.
@@ -195,6 +196,9 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#FFF8F1" />
       </Head>
+
+      {/* Cookie loader — full-screen overlay shown while GLB / assets load */}
+      <CookieLoader />
 
       {/* Fixed 3D canvas */}
       <div className="canvas-wrapper">
