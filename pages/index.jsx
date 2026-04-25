@@ -19,13 +19,13 @@ const SCENES = [
   {
     id: 'scene1',
     startPct: 0,
-    endPct: 0.12,
+    endPct: 0.18,
     title: 'The First Glance',
     body: 'From the very first look, Crunch Bites invites you into a world of warmth and indulgence. Each cookie is crafted to be more than just a snack—it\'s an experience that begins with texture, aroma, and visual delight.',
   },
   {
     id: 'scene2',
-    startPct: 0.12,
+    startPct: 0.18,
     endPct: 0.28,
     title: 'Crafted for Crunch',
     body: 'Every Crunch Bites cookie is designed with one goal in mind—perfect crunch. Carefully balanced ingredients and precise baking techniques ensure that every bite delivers a satisfying texture. It\'s not just baking—it\'s craftsmanship.',
@@ -54,7 +54,7 @@ const SCENES = [
 ];
 
 // 5 milestones — one per scene start; drives the progress-dot indicator
-const SCENE_MILESTONES = [0, 0.12, 0.28, 0.44, 0.76];
+const SCENE_MILESTONES = [0, 0.18, 0.28, 0.44, 0.76];
 
 // ─── Animation variants ───────────────────────────────────────────────────────
 const titleVariants = {
