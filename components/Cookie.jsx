@@ -67,13 +67,13 @@ const ROLL_CURVE = new THREE.CubicBezierCurve3(
    new THREE.Vector3( 0.0, 0, 0.0),
 
   // stronger pull left (entry)
-  new THREE.Vector3(-2.4, 0, 1.9),
+  new THREE.Vector3(-2.0, 0, 1.5),
 
   // MUCH stronger pull right (exit push)
-  new THREE.Vector3( 3.2, 0, 2.2),
+  new THREE.Vector3( 3.2, 0, 1.7),
 
   // 🔥 key change — end on RIGHT instead of center
-  new THREE.Vector3( 1.8, 0, 0.2)  // return to center — ready for impact
+  new THREE.Vector3( 1.2, 0, 0.1)  // return to center — ready for impact
 );
 
 // Pre-compute curve length once
