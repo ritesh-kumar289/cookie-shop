@@ -125,6 +125,11 @@ export default function Home() {
   // True once the main 3D Scene's Suspense boundary has resolved (all models loaded)
   const [sceneReady, setSceneReady] = useState(false);
   const onSceneReady = useCallback(() => setSceneReady(true), []);
+  // Debounce ref for scene label — prevents queuing multiple scene transitions when
+  // the user scrolls fast through several scenes in quick succession. Only the scene
+  // the user actually settles on will trigger the AnimatePresence transition.
+  const sceneDebounceRef = useRef(null);
+  const pendingSceneRef  = useRef(null);
 
   // Track cursor position so 3D components can apply mouse-parallax effects
   useEffect(() => {
@@ -156,12 +161,18 @@ export default function Home() {
         }
         setActiveDot(dotIdx);
 
-        // Active scene label
+        // Active scene label — debounced so rapid scrolling through multiple
+        // scenes doesn't queue a stack of AnimatePresence transitions.
+        // The label only updates 180 ms after the scroll velocity settles.
         let found = null;
         for (const sc of SCENES) {
           if (p >= sc.startPct && p < sc.endPct) { found = sc.id; break; }
         }
-        setActiveScene(found);
+        pendingSceneRef.current = found;
+        if (sceneDebounceRef.current) clearTimeout(sceneDebounceRef.current);
+        sceneDebounceRef.current = setTimeout(() => {
+          setActiveScene(pendingSceneRef.current);
+        }, 180);
 
         // PresentationControls: enable only in scene 1 flat (p < 0.12)
         const newPE = p < 0.12;
@@ -175,7 +186,10 @@ export default function Home() {
     };
 
     rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
+    return () => {
+      cancelAnimationFrame(rafId);
+      if (sceneDebounceRef.current) clearTimeout(sceneDebounceRef.current);
+    };
   }, []);
 
   const currentScene = SCENES.find((s) => s.id === activeScene);
@@ -317,7 +331,7 @@ export default function Home() {
 
       {/* Scene text overlays (all scenes EXCEPT scene1, which uses HeroPanel) */}
       <div className="ui-overlay">
-        <AnimatePresence mode="sync">
+        <AnimatePresence mode="wait">
           {currentScene && currentScene.id !== 'scene1' && (
             <motion.div
               key={currentScene.id}
