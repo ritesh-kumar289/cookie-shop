@@ -92,7 +92,7 @@ a:hover {
 
 .scroll-container {
   position: relative;
-  height: 900vh;
+  height: 1400vh;
   z-index: 2;
   pointer-events: none;
 }

@@ -59,13 +59,14 @@ function kf(frames, progress) {
 }
 
 // ── Scene 4 Phase A: circular arc center → left sweep → right side ───────────
-// Same arc radius/shape as before — original timing 0.44–0.76.
-// The cookie arcs leftward and forward then swings back to land on the right.
+// Wider arc: larger control-point magnitudes push the cookie further left and
+// further forward before swinging back to the right side, giving a much broader
+// sweeping path and a more dramatic cinematic feel.
 const ROLL_CURVE = new THREE.CubicBezierCurve3(
-  new THREE.Vector3( 0.0, 0, 0.0),
-  new THREE.Vector3(-2.0, 0, 1.5),  // pull left and forward
-  new THREE.Vector3( 3.2, 0, 1.7),  // pull right and forward
-  new THREE.Vector3( 1.2, 0, 0.1)   // land at right side of screen
+  new THREE.Vector3( 0.0, 0,  0.0),
+  new THREE.Vector3(-3.5, 0,  2.5),  // wider left-forward pull
+  new THREE.Vector3( 5.0, 0,  2.5),  // wider right-forward pull
+  new THREE.Vector3( 1.8, 0,  0.1)   // land at right side of screen
 );
 
 // Pre-compute curve length once
@@ -78,7 +79,7 @@ const ROLL_CURVE_LENGTH = ROLL_CURVE.getLength();
 // rotation.y — after the outer group has rotX=π/2 — maps to world-Z rotation,
 // which is the actual axle of the tyre.  This is correct tyre-roll spin (not the
 // "coin flip" that rotation.z produces when rotX=π/2).
-const PHASE_B_START_X =  1.2;  // matches ROLL_CURVE endpoint x
+const PHASE_B_START_X =  1.8;  // matches ROLL_CURVE endpoint x
 const PHASE_B_START_Z =  0.1;  // matches ROLL_CURVE endpoint z
 const PHASE_B_END_X   = -1.8;  // modest off-screen left exit — keeps roll slow
 const PHASE_B_SPLIT   =  0.76; // scroll progress where arc ends and Phase B begins

@@ -9,13 +9,13 @@ export default function ScrollController({ scrollProgress }) {
   useEffect(() => {
     // ── Lenis smooth scroll — tuned for cinematic inertia ──────────────────
     const lenis = new Lenis({
-      duration: 1.4,          // was 2.2 — snappier response
+      duration: 2.2,          // longer inertia — each scroll event moves the page more slowly
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: 'vertical',
       gestureOrientation: 'vertical',
       smoothWheel: true,
-      wheelMultiplier: 1.0,   // was 0.7 — 3-5 scrolls now covers a full scene
-      touchMultiplier: 1.8,   // slightly increased for mobile
+      wheelMultiplier: 0.6,   // lower = fewer animation steps per wheel tick
+      touchMultiplier: 1.2,   // slightly reduced for mobile too
     });
 
     // ── GSAP ScrollTrigger → updates scrollProgress ref ────────────────────
@@ -26,7 +26,7 @@ export default function ScrollController({ scrollProgress }) {
         trigger: '#scroll-container',
         start: 'top top',
         end: 'bottom bottom',
-        scrub: 0.5,           // was 1.5 — tighter coupling between scroll and 3D
+        scrub: 1.5,           // looser coupling — animation lags scroll slightly for cine feel
         onUpdate: (self) => {
           scrollProgress.current = self.progress;
         },
