@@ -12,7 +12,7 @@
  */
 
 import { useRef, useMemo, useEffect } from 'react';
-import { useGLTF } from '@react-three/drei';
+import { useGLTF, PresentationControls } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -75,20 +75,29 @@ const ROLL_CURVE_LENGTH = ROLL_CURVE.getLength();
 // ── Scale keyframes ────────────────────────────────────────────────────────────
 // Model is normalised to 1 world-unit wide in the useMemo below, so these
 // values represent the cookie's real diameter in world units.
+// Bumped hero scale to 2.0 (was 1.5) so cookie fills the arch nicely on landing.
 const KF_SCALE = [
-  { p: 0.00, v: 1.5 },
-  { p: 0.15, v: 1.5 },
-  { p: 0.30, v: 1.4 },
-  { p: 0.44, v: 1.3 },
+  { p: 0.00, v: 2.0 },
+  { p: 0.15, v: 2.0 },
+  { p: 0.30, v: 1.6 },
+  { p: 0.44, v: 1.4 },
   { p: 0.76, v: 1.2 },
   { p: 1.00, v: 1.2 },
 ];
 
-// rotX: flat (0) → upright (π/2) during scene 3
+// rotX keyframes
+//   p=0.00 → π/2  : cookie starts UPRIGHT (standing like a disc trophy) — hero landing
+//   p=0.12 → π/2  : holds upright through scene 1
+//   p=0.22 → 0    : tips flat for the discovery orbit (scene 2)
+//   p=0.30 → 0    : flat during orbit
+//   p=0.44 → π/2  : stands back upright as it begins to roll (scene 3→4)
+//   — impact / rest keyframes unchanged —
 const KF_ROT_X = [
-  { p: 0.00, v: 0           },
-  { p: 0.30, v: 0           },
-  { p: 0.44, v: Math.PI / 2 }, // fully upright (Scene 3 end)
+  { p: 0.00, v: Math.PI / 2 }, // upright hero
+  { p: 0.12, v: Math.PI / 2 }, // holds upright
+  { p: 0.22, v: 0           }, // tips flat for orbit
+  { p: 0.30, v: 0           }, // flat during orbit
+  { p: 0.44, v: Math.PI / 2 }, // back upright — roll start
   { p: 0.80, v: Math.PI / 4 }, // partly laid by impact
   { p: 0.87, v: 0           },
   { p: 1.00, v: 0           },
@@ -120,7 +129,7 @@ const _mouse = { x: 0, y: 0 };
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function Cookie({ scrollProgress, mouseRef }) {
+export default function Cookie({ scrollProgress, mouseRef, presentationEnabled }) {
   const groupRef = useRef();
   const { scene } = useGLTF('/models/cookie.glb');
   const timeRef = useRef(0);
@@ -232,12 +241,10 @@ export default function Cookie({ scrollProgress, mouseRef }) {
     prevScrollProgressRef.current = p;
 
     // ── Visibility ────────────────────────────────────────────────────────
-    // Materials are always opaque (transparent:false) to prevent texture-alpha
-    // holes.  Appear/disappear is handled by toggling grp.visible instead of
-    // animating material opacity.
-    //   • p < 0.05   → cookie not yet revealed (camera still settling)
-    //   • p ≥ 0.75   → cookie fully gone before roll→else branch switches at 0.76
-    grp.visible = (p >= 0.05 && p < 0.75);
+    // Cookie is visible from scroll position 0 (hero landing) through the roll.
+    // Materials are always opaque (transparent:false) — visibility is toggled
+    // via grp.visible to avoid texture-alpha holes.
+    grp.visible = p < 0.75;
 
     // ── Scale ─────────────────────────────────────────────────────────────
     const sc = kf(KF_SCALE, p);
@@ -299,14 +306,17 @@ export default function Cookie({ scrollProgress, mouseRef }) {
         grp.rotation.z = Math.sin(t * 2.2) * 0.025;
       }
 
-      // Smooth mouse-parallax influence — subtle rotation toward cursor
+      // Smooth mouse-parallax influence — stronger in hero scene 1, subtle later
       const mx = mouseRef ? mouseRef.current.x : _mouse.x;
       const my = mouseRef ? mouseRef.current.y : _mouse.y;
       mouseXRef.current = lerp(mouseXRef.current, mx, 0.04);
       mouseYRef.current = lerp(mouseYRef.current, my, 0.04);
+      // Scene 1 (hero): stronger parallax for interactive feel
+      const parStrength = p < 0.15 ? 0.12 : 0.06;
+      const parStrengthY = p < 0.15 ? 0.08 : 0.04;
       // Apply only when cookie is stable (scenes 1-3); mix with existing rotY
-      grp.rotation.y += mouseXRef.current * 0.06;
-      grp.rotation.x += mouseYRef.current * 0.04;
+      grp.rotation.y += mouseXRef.current * parStrength;
+      grp.rotation.x += mouseYRef.current * parStrengthY;
 
     } else {
       // Scenes 5-6: cookie rests at plate origin then fades out
@@ -323,7 +333,27 @@ export default function Cookie({ scrollProgress, mouseRef }) {
 
   return (
     <group ref={groupRef}>
-      <primitive object={clonedScene} />
+      {/*
+        PresentationControls wraps only the inner primitive group.
+        - enabled: only active during scene 1 (hero landing) so drag-rotate
+          does not conflict with scroll-driven GSAP animation later.
+        - snap: spring-eased return to centre on pointer-up, ensuring the
+          model is back at zero delta-rotation by the time the scroll
+          animation takes over.
+        - global={false}: only activates on pointer events on the mesh itself
+          (not the whole canvas), preventing scroll-wheel interception.
+        - Mouse-cursor parallax (above) still runs independently via useFrame.
+      */}
+      <PresentationControls
+        global={false}
+        enabled={!!presentationEnabled}
+        snap={{ mass: 1, tension: 250, friction: 32 }}
+        polar={[-Math.PI / 5, Math.PI / 5]}
+        azimuth={[-Math.PI / 3, Math.PI / 3]}
+        speed={1.4}
+      >
+        <primitive object={clonedScene} />
+      </PresentationControls>
     </group>
   );
 }

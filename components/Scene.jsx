@@ -6,6 +6,7 @@ import Cookie from './Cookie';
 import CookiesPlate from './CookiesPlate';
 import CameraRig from './CameraRig';
 import Effects from './Effects';
+import ArchBackdrop from './ArchBackdrop';
 
 // ── Error boundary: catches render/load errors inside the Canvas and prevents
 //    them from crashing the entire page (shows the dark background instead).
@@ -32,7 +33,7 @@ class CanvasErrorBoundary extends Component {
   }
 }
 
-export default function Scene({ scrollProgress, mouseRef }) {
+export default function Scene({ scrollProgress, mouseRef, presentationEnabled }) {
   return (
     <CanvasErrorBoundary>
       <Canvas
@@ -43,7 +44,7 @@ export default function Scene({ scrollProgress, mouseRef }) {
           toneMapping: THREE.ACESFilmicToneMapping,
           outputColorSpace: THREE.SRGBColorSpace,
         }}
-        camera={{ fov: 45, near: 0.1, far: 100, position: [0, 5, 0.1] }}
+        camera={{ fov: 45, near: 0.1, far: 100, position: [0, 0.5, 4.0] }}
         style={{ width: '100%', height: '100%' }}
         shadows
       >
@@ -56,8 +57,9 @@ export default function Scene({ scrollProgress, mouseRef }) {
         <color attach="background" args={['#FEF0DC']} />
         <Suspense fallback={null}>
           <Lighting />
+          <ArchBackdrop scrollProgress={scrollProgress} />
           <CookiesPlate scrollProgress={scrollProgress} />
-          <Cookie scrollProgress={scrollProgress} mouseRef={mouseRef} />
+          <Cookie scrollProgress={scrollProgress} mouseRef={mouseRef} presentationEnabled={presentationEnabled} />
           <CameraRig scrollProgress={scrollProgress} mouseRef={mouseRef} />
           <Effects scrollProgress={scrollProgress} />
         </Suspense>

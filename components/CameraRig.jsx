@@ -14,15 +14,15 @@ import * as THREE from 'three';
 //  0.87  Scene 6 : begin cinematic zoom-out hero reveal
 //  1.00  Scene 6 : full plate, camera zoomed out + panned right
 const KEYFRAMES = [
-  { p: 0.00, pos: [0,    4.2,  0.1 ], target: [0, 0,    0] },  // top-down
-  { p: 0.15, pos: [2.8,  2.0,  2.8 ], target: [0, 0,    0] },  // orbit start
-  { p: 0.30, pos: [1.8,  0.9,  3.5 ], target: [0, 0,    0] },  // angled
-  { p: 0.44, pos: [0,    0.4,  4.5 ], target: [0, 0,    0] },  // eye-level
-  { p: 0.56, pos: [-2.2, 1.2,  4.8 ], target: [0, 0,    2] },  // Scene 4A: orbit
-  { p: 0.68, pos: [0,    0.2,  5.5 ], target: [0, 0,    3] },  // Scene 4B: toward cam
-  { p: 0.76, pos: [-1.0, 0.8,  4.2 ], target: [0, 0,    0] },  // impact follow
-  { p: 0.87, pos: [1.5,  1.8,  3.5 ], target: [0, 0,    0] },  // hero begin
-  { p: 1.00, pos: [3.0,  2.8,  4.0 ], target: [0, 0,    0] },  // zoom out + pan right
+  { p: 0.00, pos: [0,    0.5,  4.0 ], target: [0, 0.3, 0] },  // front view — hero reveal
+  { p: 0.15, pos: [2.8,  2.0,  2.8 ], target: [0, 0,   0] },  // orbit start
+  { p: 0.30, pos: [1.8,  0.9,  3.5 ], target: [0, 0,   0] },  // angled
+  { p: 0.44, pos: [0,    0.4,  4.5 ], target: [0, 0,   0] },  // eye-level
+  { p: 0.56, pos: [-2.2, 1.2,  4.8 ], target: [0, 0,   2] },  // Scene 4A: orbit
+  { p: 0.68, pos: [0,    0.2,  5.5 ], target: [0, 0,   3] },  // Scene 4B: toward cam
+  { p: 0.76, pos: [-1.0, 0.8,  4.2 ], target: [0, 0,   0] },  // impact follow
+  { p: 0.87, pos: [1.5,  1.8,  3.5 ], target: [0, 0,   0] },  // hero begin
+  { p: 1.00, pos: [3.0,  2.8,  4.0 ], target: [0, 0,   0] },  // zoom out + pan right
 ];
 
 function smoothstep(t) {
