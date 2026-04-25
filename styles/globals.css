@@ -427,68 +427,6 @@ a:hover {
   background: var(--color-accent);
 }
 
-/* ─── Cookie jar overlay ─────────────────────────────────────────────── */
-/*
- * TECHNIQUE: overflow-hidden container + oversized img anchored at bottom.
- *
- * The jar image (22a82e26) has a WHITE background.  Cookies sticking above
- * the jar rim occupy the top ~30 % of the image.  We:
- *   1. Clip that top portion via overflow: hidden — only the jar body below
- *      the rim opening is rendered.
- *   2. mix-blend-mode: multiply on the <img> makes white pixels transparent
- *      (white × warm-cream canvas bg = cream → looks transparent).
- *   3. The container sits with bottom: 0 so the jar base stays at the
- *      viewport bottom.
- *
- * Sizing math (jar opening ≈ 30 % from top of image):
- *   image height H = 69vh  →  opening at 0.30 × 69vh = 20.7vh from img top
- *   container height C = 48vh  →  hidden top = H – C = 21vh  ≈ opening ✓
- *   container top  = 100vh – 48vh = 52vh
- *
- * 3D cookie position (scene 1): cookie Y = +0.3 world-units (KF_POS_Y_BASE)
- *   Camera looks at y=0.3 → cookie at y=0.3 = NDC 0 = 50 % from top.
- *   Cookie radius = 30 % of viewport.
- *   → cookie spans 20 %–80 % from top.
- *   → jar rim at 52 % → 53 % of cookie diameter is above the rim  ✓
- *     (cookie looks like the topmost cookie emerging from the jar)
- */
-
-.jar-overlay {
-  position: fixed;
-  bottom: 0;
-  left: 0;                  /* full-width container; img centred inside */
-  width: 100vw;             /* must be explicit — "auto" on fixed+abs-child = 0 px */
-  height: 48vh;
-  overflow: hidden;
-  z-index: 5;
-  pointer-events: none;
-}
-
-.jar-overlay img {
-  /* taller than the container so the top 30 % (drawn protruding cookies) is clipped */
-  height: 69vh;
-  width: auto;
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  /* multiply blend removes the white background against the cream page bg */
-  mix-blend-mode: multiply;
-  filter: drop-shadow(0 -6px 32px rgba(184, 116, 42, 0.18));
-  user-select: none;
-  display: block;
-}
-
-@media (max-width: 1024px) {
-  .jar-overlay          { height: 44vh; }
-  .jar-overlay img      { height: 63vh; }
-}
-
-@media (max-width: 768px) {
-  .jar-overlay          { height: 40vh; }
-  .jar-overlay img      { height: 57vh; }
-}
-
 /* ─── Cookie loader overlay ──────────────────────────────────────────── */
 /*
  * Full-screen cream overlay that covers everything while the 3D assets load.

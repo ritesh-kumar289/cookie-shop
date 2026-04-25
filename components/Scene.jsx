@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import Lighting from './Lighting';
 import Cookie from './Cookie';
 import CookiesPlate from './CookiesPlate';
+import WoodenPlate from './WoodenPlate';
 import CameraRig from './CameraRig';
 import Effects from './Effects';
 
@@ -56,6 +57,7 @@ export default function Scene({ scrollProgress, mouseRef, presentationEnabled })
         <color attach="background" args={['#FEF0DC']} />
         <Suspense fallback={null}>
           <Lighting />
+          <WoodenPlate scrollProgress={scrollProgress} />
           <CookiesPlate scrollProgress={scrollProgress} />
           <Cookie scrollProgress={scrollProgress} mouseRef={mouseRef} presentationEnabled={presentationEnabled} />
           <CameraRig scrollProgress={scrollProgress} mouseRef={mouseRef} />

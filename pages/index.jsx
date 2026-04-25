@@ -8,39 +8,38 @@ const Scene          = dynamic(() => import('../components/Scene'),          { s
 const ScrollController = dynamic(() => import('../components/ScrollController'), { ssr: false });
 const CookieLoader   = dynamic(() => import('../components/CookieLoader'),   { ssr: false });
 
-// ─── Cookie jar PNG ────────────────────────────────────────────────────────────
-// Filled glass jar with chocolate-chip cookies; white background eliminated via
-// mix-blend-mode: multiply in CSS (white × warm-cream page bg = transparent).
-const JAR_IMG_URL =
-  'https://github.com/user-attachments/assets/cbb16217-bad1-4438-8848-83cdb05d0e46';
-
 // ─── Scene copy ───────────────────────────────────────────────────────────────
-// 5 scenes — no emoji icons, just heading + body text from the brief.
+// 5 scenes aligned to new animation timeline:
+//  Scene1 (0.00-0.12) : cookie flat on wooden plate
+//  Scene2 (0.12-0.28) : cookie rises upright
+//  Scene3 (0.28-0.44) : cookie rolls as wheel, plate exits
+//  Scene4 (0.44-0.76) : S-curve roll
+//  Scene5 (0.76-1.00) : impact + showcase
 const SCENES = [
   {
     id: 'scene1',
     startPct: 0,
-    endPct: 0.18,
+    endPct: 0.12,
     title: 'The First Glance',
     body: 'From the very first look, Crunch Bites invites you into a world of warmth and indulgence. Each cookie is crafted to be more than just a snack—it\'s an experience that begins with texture, aroma, and visual delight.',
   },
   {
     id: 'scene2',
-    startPct: 0.18,
-    endPct: 0.36,
+    startPct: 0.12,
+    endPct: 0.28,
     title: 'Crafted for Crunch',
     body: 'Every Crunch Bites cookie is designed with one goal in mind—perfect crunch. Carefully balanced ingredients and precise baking techniques ensure that every bite delivers a satisfying texture. It\'s not just baking—it\'s craftsmanship.',
   },
   {
     id: 'scene3',
-    startPct: 0.36,
-    endPct: 0.54,
+    startPct: 0.28,
+    endPct: 0.44,
     title: 'Rolling Into Perfection',
     body: 'As the cookie moves, it represents the journey from raw ingredients to a perfected creation. Each rotation reflects the transformation process—mixing, shaping, baking, and finishing.',
   },
   {
     id: 'scene4',
-    startPct: 0.54,
+    startPct: 0.44,
     endPct: 0.76,
     title: 'The Moment of Impact',
     body: 'The moment the cookie meets its destination is where everything comes together. Flavor, texture, and craftsmanship collide to create a satisfying experience. This is the point where anticipation turns into reality.',
@@ -55,7 +54,7 @@ const SCENES = [
 ];
 
 // 5 milestones — one per scene start; drives the progress-dot indicator
-const SCENE_MILESTONES = [0, 0.18, 0.36, 0.54, 0.76];
+const SCENE_MILESTONES = [0, 0.12, 0.28, 0.44, 0.76];
 
 // ─── Animation variants ───────────────────────────────────────────────────────
 const titleVariants = {
@@ -119,12 +118,10 @@ export default function Home() {
   const [activeScene, setActiveScene] = useState('scene1');
   const [showScrollHint, setShowScrollHint] = useState(true);
   const [activeDot, setActiveDot] = useState(0);
-  // PresentationControls enabled only while in hero landing (scene 1)
+  // PresentationControls enabled only while in hero landing (scene 1 flat)
   const [presentationEnabled, setPresentationEnabled] = useState(true);
   // Track last presentationEnabled to avoid unnecessary state updates
   const prevPERef = useRef(true);
-  // Direct DOM ref for jar opacity — avoids React re-render on every scroll frame
-  const jarRef = useRef(null);
 
   // Track cursor position so 3D components can apply mouse-parallax effects
   useEffect(() => {
@@ -163,20 +160,12 @@ export default function Home() {
         }
         setActiveScene(found);
 
-        // PresentationControls: enable only in scene 1 (p < 0.18)
-        const newPE = p < 0.18;
+        // PresentationControls: enable only in scene 1 flat (p < 0.12)
+        const newPE = p < 0.12;
         if (newPE !== prevPERef.current) {
           prevPERef.current = newPE;
           setPresentationEnabled(newPE);
         }
-      }
-
-      // Jar overlay opacity — directly manipulate DOM to avoid per-frame re-render
-      if (jarRef.current) {
-        let jarOp = 0;
-        if (p < 0.18)       jarOp = 1;
-        else if (p < 0.22)  jarOp = 1 - (p - 0.18) / 0.04;
-        jarRef.current.style.opacity = jarOp;
       }
 
       rafId = requestAnimationFrame(tick);
@@ -206,19 +195,6 @@ export default function Home() {
           scrollProgress={scrollProgress}
           mouseRef={mouseRef}
           presentationEnabled={presentationEnabled}
-        />
-      </div>
-
-      {/* ── Cookie jar overlay ──────────────────────────────────────────────
-          Transparent PNG sits above the canvas (z-5) so the cookie 3D model
-          shows through the glass and appears to live inside the jar.
-          Opacity is driven directly via jarRef to avoid per-frame re-renders.
-      ──────────────────────────────────────────────────────────────────── */}
-      <div className="jar-overlay" ref={jarRef}>
-        <img
-          src={JAR_IMG_URL}
-          alt=""
-          draggable={false}
         />
       </div>
 

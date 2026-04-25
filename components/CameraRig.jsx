@@ -3,20 +3,24 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
 // ─── Camera keyframes ────────────────────────────────────────────────────────
-// Timeline aligned to 5-scene scroll (scene boundaries at 0.18/0.36/0.54/0.76)
-// End-scene (0.76–1.00): cinematic zoom-IN → front → top-45° → slight rotation
+// Timeline aligned to new 6-scene scroll:
+//  Scene 1 (0.00-0.12): flat cookie on plate — camera slightly elevated, looking down
+//  Scene 2 (0.12-0.28): cookie rises upright
+//  Scene 3 (0.28-0.44): cookie wheels in place, plate exits — camera swings to orbit
+//  Scenes 4-6 (0.44-1.00): unchanged cinematic roll + impact + showcase
 const KEYFRAMES = [
-  { p: 0.00, pos: [0,    0.5,  4.0 ], target: [0, 0.3, 0] },  // front hero
-  { p: 0.18, pos: [2.8,  2.0,  2.8 ], target: [0, 0,   0] },  // orbit start
-  { p: 0.36, pos: [1.8,  0.9,  3.5 ], target: [0, 0,   0] },  // angled
-  { p: 0.54, pos: [0,    0.4,  4.5 ], target: [0, 0,   0] },  // eye-level
-  { p: 0.62, pos: [-2.2, 1.2,  4.8 ], target: [0, 0,   2] },  // gentle orbit
-  { p: 0.70, pos: [0,    0.2,  5.5 ], target: [0, 0,   3] },  // toward cam
-  { p: 0.76, pos: [-1.0, 0.8,  4.2 ], target: [0, 0,   0] },  // impact follow
+  { p: 0.00, pos: [0,    1.4,  4.2], target: [0, -0.20, 0] }, // bird's-eye: flat cookie on plate
+  { p: 0.12, pos: [0,    1.4,  4.2], target: [0, -0.20, 0] }, // holds for flat scene
+  { p: 0.28, pos: [0,    0.5,  4.0], target: [0,  0.10, 0] }, // levels up as cookie stands
+  { p: 0.44, pos: [2.8,  2.0,  2.8], target: [0,  0,    0] }, // orbit start (was p=0.18)
+  { p: 0.54, pos: [1.8,  0.9,  3.5], target: [0,  0,    0] }, // angled
+  { p: 0.67, pos: [0,    0.4,  4.5], target: [0,  0,    0] }, // eye-level
+  { p: 0.74, pos: [-2.2, 1.2,  4.8], target: [0,  0,    2] }, // gentle orbit
+  { p: 0.76, pos: [-1.0, 0.8,  4.2], target: [0,  0,    0] }, // impact follow
   // ── Cinematic plate reveal: zoom IN, swing up, slight rotation ────────────
-  { p: 0.84, pos: [0,    0.8,  2.8 ], target: [0, 0,   0] },  // zoom into front
-  { p: 0.92, pos: [0.6,  2.4,  2.0 ], target: [0, 0,   0] },  // swing to top-45°
-  { p: 1.00, pos: [1.8,  2.8,  1.8 ], target: [0, 0,   0] },  // slight rotation
+  { p: 0.84, pos: [0,    0.8,  2.8], target: [0,  0,    0] }, // zoom into front
+  { p: 0.92, pos: [0.6,  2.4,  2.0], target: [0,  0,    0] }, // swing to top-45°
+  { p: 1.00, pos: [1.8,  2.8,  1.8], target: [0,  0,    0] }, // slight rotation
 ];
 
 // ─── Cinematic page-load intro ────────────────────────────────────────────────
@@ -108,7 +112,7 @@ export default function CameraRig({ scrollProgress, mouseRef }) {
       desiredX      = INTRO_START_POS[0] + (endPos[0] - INTRO_START_POS[0]) * introT;
       desiredY      = INTRO_START_POS[1] + (endPos[1] - INTRO_START_POS[1]) * introT;
       desiredZ      = INTRO_START_POS[2] + (endPos[2] - INTRO_START_POS[2]) * introT;
-      desiredLookX  = 0; desiredLookY = 0.3 * (1 - introT); desiredLookZ = 0;
+      desiredLookX  = 0; desiredLookY = -0.2 * introT - 0.2 * (1 - introT); desiredLookZ = 0;
       fov           = INTRO_START_FOV + (45 - INTRO_START_FOV) * introT; // 62→45°
     } else {
       const { pos, target } = lerpKeyframes(p);

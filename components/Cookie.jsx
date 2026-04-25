@@ -3,9 +3,9 @@
  *
  * Single cookie model — drives the cinematic scroll story:
  *
- *  Scene 1  (0.00 – 0.15)  THE REVEAL      : fade in, top-down, gentle float
- *  Scene 2  (0.15 – 0.30)  DISCOVERY ORBIT : counter-rotation while camera orbits
- *  Scene 3  (0.30 – 0.44)  TRANSFORMATION  : cookie tilts upright (rotX → π/2)
+ *  Scene 1  (0.00 – 0.12)  FLAT ON PLATE   : cookie lies face-up on wooden plate
+ *  Scene 2  (0.12 – 0.28)  RISING          : cookie stands up like a wheel
+ *  Scene 3  (0.28 – 0.44)  WHEEL ROLL      : cookie rolls as wheel, plate exits
  *  Scene 4  (0.44 – 0.76)  THE ROLL        : S-curve + two cinematic sub-scenes
  *  Scene 5  (0.76 – 0.87)  IMPACT          : arrives at plate, bounces, fades out
  *  Scene 6  (0.87 – 1.00)  SHOWCASE        : invisible (plate takes over)
@@ -73,52 +73,42 @@ const ROLL_CURVE_LENGTH = ROLL_CURVE.getLength();
 // ── Keyframe tables ───────────────────────────────────────────────────────────
 
 // ── Scale keyframes ────────────────────────────────────────────────────────────
-// Model is normalised to 1 world-unit wide in the useMemo below, so these
-// values represent the cookie's real diameter in world units.
-// Bumped hero scale to 2.0 (was 1.5) so cookie fills the arch nicely on landing.
 const KF_SCALE = [
-  { p: 0.00, v: 2.0 },
-  { p: 0.15, v: 2.0 },
-  { p: 0.30, v: 1.6 },
-  { p: 0.44, v: 1.4 },
+  { p: 0.00, v: 1.4 }, // cookie on plate — fits nicely inside the dish
+  { p: 0.12, v: 1.4 }, // holds flat
+  { p: 0.28, v: 1.6 }, // grows slightly as it stands up
+  { p: 0.44, v: 1.4 }, // roll size
   { p: 0.76, v: 1.2 },
   { p: 1.00, v: 1.2 },
 ];
 
-// rotX keyframes
-//   p=0.00 → π/2  : cookie starts UPRIGHT (standing like a disc trophy) — hero landing
-//   p=0.12 → π/2  : holds upright through scene 1
-//   p=0.22 → 0    : tips flat for the discovery orbit (scene 2)
-//   p=0.30 → 0    : flat during orbit
-//   p=0.44 → π/2  : stands back upright as it begins to roll (scene 3→4)
+// rotX keyframes — NEW ORDER: flat first, then upright, then roll
+//   p=0.00 → 0     : cookie lies FLAT on the plate (face-up)
+//   p=0.12 → 0     : holds flat
+//   p=0.28 → π/2   : stands upright (like a wheel / disc trophy)
+//   p=0.44 → π/2   : stays upright for S-curve roll
 //   — impact / rest keyframes unchanged —
 const KF_ROT_X = [
-  { p: 0.00, v: Math.PI / 2 }, // upright hero
-  { p: 0.12, v: Math.PI / 2 }, // holds upright
-  { p: 0.22, v: 0           }, // tips flat for orbit
-  { p: 0.30, v: 0           }, // flat during orbit
-  { p: 0.44, v: Math.PI / 2 }, // back upright — roll start
+  { p: 0.00, v: 0           }, // flat on plate
+  { p: 0.12, v: 0           }, // holds flat
+  { p: 0.28, v: Math.PI / 2 }, // stands upright
+  { p: 0.44, v: Math.PI / 2 }, // upright — roll start
   { p: 0.80, v: Math.PI / 4 }, // partly laid by impact
   { p: 0.87, v: 0           },
   { p: 1.00, v: 0           },
 ];
 
-// Y float base position
-// Scene 1 (p 0–0.18): cookie is raised by +0.3 world-units so it appears at
-// screen-centre (camera looks at y=0.3, so placing the cookie at y=0.3 puts it
-// at NDC 0 → 50 % from viewport top).  This ensures the cookie's centre sits
-// just ABOVE the jar rim (~52 % from top) so ~55 % of the cookie disk shows
-// above the glass opening — the "topmost cookie emerging from the jar" look.
-// The elevation smoothly transitions back to 0 between scene-1 end (p=0.18)
-// and scene-3 start (p=0.30).  The jar overlay also fades out at p=0.18–0.22
-// so the drop is never visible.
+// Y base position keyframes
+//   Scene 1 (p 0–0.12): cookie rests on plate surface (PLATE_REST_Y + half-thickness)
+//   Scene 2 (p 0.12–0.28): cookie rises as it stands up
+//   Scene 3–4: rolls at moderate height
 const KF_POS_Y_BASE = [
-  { p: 0.00, v: 0.3 },  // elevated: cookie at screen-centre above jar rim
-  { p: 0.18, v: 0.3 },  // holds through scene 1
-  { p: 0.30, v: 0   },  // back to origin by scene 3 (jar gone by p=0.22)
-  { p: 0.44, v: 0.2 },
-  { p: 0.76, v: 0   },
-  { p: 1.00, v: 0   },
+  { p: 0.00, v: -0.35 }, // resting on plate (plate centre at -0.58, top at -0.53)
+  { p: 0.12, v: -0.35 }, // holds on plate
+  { p: 0.28, v:  0.15 }, // risen to wheel height
+  { p: 0.44, v:  0.20 }, // pre-roll elevation
+  { p: 0.76, v:  0    },
+  { p: 1.00, v:  0    },
 ];
 
 // ── Cookie radius for rolling physics ────────────────────────────────────────
@@ -250,9 +240,6 @@ export default function Cookie({ scrollProgress, mouseRef, presentationEnabled }
     prevScrollProgressRef.current = p;
 
     // ── Visibility ────────────────────────────────────────────────────────
-    // Cookie is visible from scroll position 0 (hero landing) through the roll.
-    // Materials are always opaque (transparent:false) — visibility is toggled
-    // via grp.visible to avoid texture-alpha holes.
     grp.visible = p < 0.75;
 
     // ── Scale ─────────────────────────────────────────────────────────────
@@ -263,13 +250,15 @@ export default function Cookie({ scrollProgress, mouseRef, presentationEnabled }
     grp.rotation.x = kf(KF_ROT_X, p);
 
     // ── Rotation Y ────────────────────────────────────────────────────────
-    if (p < 0.15) {
-      // Scene 1: scroll-synced spin (1 full revolution per scene)
-      grp.rotation.y += deltaP * (Math.PI * 2 / 0.15);
-    } else if (p < 0.30) {
-      grp.rotation.y += delta * 0.18; // Scene 2: gentle orbit
+    if (p < 0.12) {
+      // Scene 1 FLAT: very slow lazy Y spin (face-up cookie, barely rotating)
+      grp.rotation.y += delta * 0.28;
+    } else if (p < 0.28) {
+      // Scene 2 RISING: build momentum as cookie stands up
+      grp.rotation.y += delta * 0.75;
     } else if (p < 0.44) {
-      grp.rotation.y += delta * 0.14; // Scene 3: slow down
+      // Scene 3 WHEEL: fast wheel spin in place while plate exits
+      grp.rotation.y += delta * 2.4;
     }
     // Scene 4+: rotation.y driven by roll tangent below
 
@@ -302,33 +291,26 @@ export default function Cookie({ scrollProgress, mouseRef, presentationEnabled }
       grp.rotation.x += tiltRef.current * 0.4;
 
     } else if (p < 0.44) {
-      // Scenes 1-3: stationary at origin, gentle float + mouse parallax
-      const floatY = p < 0.30
-        ? Math.sin(t * 1.0) * 0.08
+      // Scenes 1-3: stationary at origin (no path movement), gentle float + mouse parallax
+      const floatY = p < 0.28
+        ? Math.sin(t * 1.0) * 0.05
         : 0;
       grp.position.set(0, kf(KF_POS_Y_BASE, p) + floatY, 0);
       grp.rotation.z = 0;
       tiltRef.current = lerp(tiltRef.current, 0, 0.06);
 
-      // Micro wobble in scenes 1–2
-      if (p < 0.30) {
-        grp.rotation.z = Math.sin(t * 2.2) * 0.025;
+      // Micro wobble in scenes 1–2 (flat + rising)
+      if (p < 0.28) {
+        grp.rotation.z = Math.sin(t * 2.2) * 0.018;
       }
 
       // ── Face-the-cursor (look-at / cursor-tracking effect) ───────────────
-      // The cookie tilts to "face" the cursor and holds that pose while the
-      // cursor is still.  Uses a delta-based approach so the rotation target
-      // is bounded (no continuous spinning from a stationary cursor).
-      //   mouseXRef stores the current face-rotation target for Y axis
-      //   mouseYRef stores the current face-rotation target for X axis
       const mx = mouseRef ? mouseRef.current.x : _mouse.x;
       const my = mouseRef ? mouseRef.current.y : _mouse.y;
-      // Max angles: more expressive in scene 1 hero, subtler in later scenes
-      const MAX_FACE_Y = p < 0.18 ? 0.32 : 0.16;
-      const MAX_FACE_X = p < 0.18 ? 0.14 : 0.08;
+      const MAX_FACE_Y = p < 0.12 ? 0.18 : 0.14;
+      const MAX_FACE_X = p < 0.12 ? 0.08 : 0.06;
       const newFaceY = lerp(mouseXRef.current, mx * MAX_FACE_Y, 0.06);
       const newFaceX = lerp(mouseYRef.current, -my * MAX_FACE_X, 0.06);
-      // Add only the per-frame delta so the cookie holds its tilt when still
       grp.rotation.y += newFaceY - mouseXRef.current;
       grp.rotation.x += newFaceX - mouseYRef.current;
       mouseXRef.current = newFaceY;
