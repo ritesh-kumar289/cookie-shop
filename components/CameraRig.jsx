@@ -3,35 +3,39 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
 // ─── Camera keyframes ────────────────────────────────────────────────────────
-// Timeline aligned to new 6-scene scroll:
+// Timeline aligned to the 3-phase Scene 4:
 //  Scene 1 (0.00-0.12): flat cookie on plate — camera slightly elevated, looking down
 //  Scene 2 (0.12-0.28): cookie rises upright
 //  Scene 3 (0.28-0.44): cookie wheels in place, plate exits — camera swings to orbit
-//  Scenes 4-6 (0.44-1.00): unchanged cinematic roll + impact + showcase
+//  Scene 4 Phase A (0.44-0.62): arc — cookie sweeps left then swings to right side
+//  Scene 4 Phase B (0.62-0.76): cookie rolls as wheel RIGHT → LEFT, reveals plate
+//  Scenes 5-6 (0.76-1.00): plate showcase
 const KEYFRAMES = [
   { p: 0.00, pos: [0,    1.4,  4.2], target: [0, -0.20, 0] }, // bird's-eye: flat cookie on plate
   { p: 0.12, pos: [0,    1.4,  4.2], target: [0, -0.20, 0] }, // holds for flat scene
   { p: 0.28, pos: [0,    0.5,  4.0], target: [0,  0.10, 0] }, // levels up as cookie stands
-  { p: 0.44, pos: [1.0,  1.4,  4.5], target: [0,  0.1,  0] }, // start of arc — slight right
-  { p: 0.57, pos: [0,    0.2,  2.2], target: [0,  0,    0] }, // ZOOM-THROUGH: rush forward, close-up
-  { p: 0.65, pos: [0,    1.0,  4.4], target: [0,  0,    0] }, // dramatic pull-back after pass-through
-  { p: 0.74, pos: [-0.8, 1.0,  4.3], target: [0,  0.1,  0] }, // slight left — tracking cookie exit
-  { p: 0.76, pos: [-1.0, 0.8,  4.2], target: [0,  0,    0] }, // impact follow
+  { p: 0.44, pos: [1.0,  1.2,  4.5], target: [0,   0.1, 0] }, // arc start — slight right lean
+  { p: 0.62, pos: [1.5,  1.0,  4.3], target: [0.8, 0.1, 0] }, // Phase A ends — cookie at right
+  { p: 0.66, pos: [0,    0.8,  4.0], target: [0,   0,   0] }, // cookie crosses centre — plate reveal
+  { p: 0.72, pos: [-0.8, 0.8,  4.2], target: [0,   0,   0] }, // tracking cookie exiting left
+  { p: 0.76, pos: [-0.2, 0.8,  3.8], target: [0,   0,   0] }, // cookie exits, transition to plate
   // ── Cinematic plate reveal: zoom IN, swing up, slight rotation ────────────
   { p: 0.84, pos: [0,    0.8,  2.8], target: [0,  0,    0] }, // zoom into front
   { p: 0.92, pos: [0.6,  2.4,  2.0], target: [0,  0,    0] }, // swing to top-45°
   { p: 1.00, pos: [1.8,  2.8,  1.8], target: [0,  0,    0] }, // slight rotation
 ];
 
-// ─── FOV keyframes — separate from position to allow the dramatic zoom-through ─
+// ─── FOV keyframes — separate from position to allow tracking shots ─────────
 // Values are in degrees. Interpolated with smoothstep between pairs.
+// The extreme close-up at 0.57 is removed; instead the camera follows the
+// rolling cookie with a moderate FOV change.
 const FOV_KEYFRAMES = [
   { p: 0.00, v: 45 },
   { p: 0.44, v: 43 }, // pre-arc: standard view
-  { p: 0.57, v: 16 }, // PEAK ZOOM-IN — cookie fills frame, close-up pass-through feel
-  { p: 0.65, v: 38 }, // zoom back out after pass-through
-  { p: 0.76, v: 41 }, // settle for impact
-  { p: 1.00, v: 30 }, // cinematic zoom-in for plate reveal
+  { p: 0.62, v: 44 }, // Phase A ends — cookie arrives at right, slightly wider
+  { p: 0.66, v: 40 }, // reveal moment — moderate pull-back for plate reveal
+  { p: 0.76, v: 38 }, // cookie exits, settle toward plate
+  { p: 1.00, v: 30 }, // cinematic zoom-in for plate showcase
 ];
 
 // ─── Cinematic page-load intro ────────────────────────────────────────────────
@@ -179,9 +183,9 @@ export default function CameraRig({ scrollProgress, mouseRef }) {
     _lookTarget.set(desiredLookX, desiredLookY, desiredLookZ);
 
     // Faster lerp during intro for crisper cinematic feel;
-    // extra-fast during the dramatic zoom-through arc section for responsive camera
+    // extra-fast during Scene 4 (arc + wheel roll) for responsive camera tracking
     const lerpFactor = introActive ? 0.07 :
-      (p >= 0.44 && p < 0.67) ? 0.10 :
+      (p >= 0.44 && p < 0.77) ? 0.10 :
       0.04;
     camera.position.lerp(_targetPos, lerpFactor);
     currentLookAt.current.lerp(_lookTarget, lerpFactor);

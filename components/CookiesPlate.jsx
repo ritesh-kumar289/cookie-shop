@@ -87,9 +87,11 @@ export default function CookiesPlate({ scrollProgress }) {
 
     // ── Opacity ───────────────────────────────────────────────────────────
     let opacity = 0;
-    if (p >= 0.76 && p < 0.87) {
-      opacity = localT(p, 0.76, 0.87);
-    } else if (p >= 0.87) {
+    // Begin revealing as the rolling cookie crosses the screen centre (p≈0.66)
+    // so the plate is already fading in when the cookie rolls past it.
+    if (p >= 0.65 && p < 0.76) {
+      opacity = localT(p, 0.65, 0.76);
+    } else if (p >= 0.76) {
       opacity = 1;
     }
 

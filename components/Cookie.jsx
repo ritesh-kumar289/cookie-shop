@@ -58,26 +58,32 @@ function kf(frames, progress) {
   return last.v;
 }
 
-// ── Circular arc path (Scene 4): center → left arc → front → right arc → center ─
-// The arc starts and ends at (0,0,0) so it is perfectly continuous with the
-// cookie's resting position at the end of Scene 3 — no teleport.
-// Control points at ±2.2/Z=1.9 — noticeably wider than the original (±2.0/Z=1.8)
-// but more measured than the previous push (±3.0/Z=2.4).
+// ── Scene 4 Phase A: circular arc center → left sweep → right side ───────────
+// The cookie starts at center (from Scene 3 spin) and arcs leftward and forward
+// before swinging back to the right side of the screen — the "left to right arc".
 const ROLL_CURVE = new THREE.CubicBezierCurve3(
-   new THREE.Vector3( 0.0, 0, 0.0),
-
-  // stronger pull left (entry)
-  new THREE.Vector3(-2.0, 0, 1.5),
-
-  // MUCH stronger pull right (exit push)
-  new THREE.Vector3( 3.2, 0, 1.7),
-
-  // 🔥 key change — end on RIGHT instead of center
-  new THREE.Vector3( 1.2, 0, 0.1)  // return to center — ready for impact
+  new THREE.Vector3( 0.0, 0, 0.0),
+  new THREE.Vector3(-2.0, 0, 1.5),  // pull left and forward
+  new THREE.Vector3( 3.2, 0, 1.7),  // pull right and forward
+  new THREE.Vector3( 1.2, 0, 0.1)   // land at right side of screen
 );
 
 // Pre-compute curve length once
 const ROLL_CURVE_LENGTH = ROLL_CURVE.getLength();
+
+// Pre-compute the tangent direction at the arc end so Phase B can blend smoothly
+const _arcEndTangent = ROLL_CURVE.getTangentAt(1.0);
+const ARC_FINAL_ROTATION_Y = Math.atan2(_arcEndTangent.x, _arcEndTangent.z);
+
+// ── Scene 4 Phase B: cookie rolls as wheel RIGHT → LEFT ───────────────────────
+// After the arc delivers the cookie to the right side it becomes a rolling wheel.
+// It travels in a straight line from (PHASE_B_START_X, *, PHASE_B_Z) to
+// (PHASE_B_END_X, *, PHASE_B_Z), passing through the screen centre, which is
+// when CookiesPlate is revealed.  The cookie exits off the left edge then hides.
+const PHASE_B_START_X =  1.2;  // matches ROLL_CURVE endpoint x
+const PHASE_B_START_Z =  0.1;  // matches ROLL_CURVE endpoint z
+const PHASE_B_END_X   = -3.0;  // off-screen left
+const PHASE_B_SPLIT   =  0.62; // scroll progress where arc ends and Phase B begins
 
 // ── Keyframe tables ───────────────────────────────────────────────────────────
 
@@ -91,17 +97,19 @@ const KF_SCALE = [
   { p: 1.00, v: 0.70 },
 ];
 
-// rotX keyframes — NEW ORDER: flat first, then upright, then roll
+// rotX keyframes — flat first, then upright, stays upright through Phase B roll
 //   p=0.00 → 0     : cookie lies FLAT on the plate (face-up)
 //   p=0.12 → 0     : holds flat
 //   p=0.28 → π/2   : stands upright (like a wheel / disc trophy)
-//   p=0.44 → π/2   : stays upright for S-curve roll
+//   p=0.44 → π/2   : stays upright for arc roll (Phase A)
+//   p=0.75 → π/2   : still upright at end of wheel-roll Phase B
 //   — impact / rest keyframes unchanged —
 const KF_ROT_X = [
   { p: 0.00, v: 0           }, // flat on plate
   { p: 0.12, v: 0           }, // holds flat
   { p: 0.28, v: Math.PI / 2 }, // stands upright
   { p: 0.44, v: Math.PI / 2 }, // upright — roll start
+  { p: 0.75, v: Math.PI / 2 }, // stays upright through Phase B wheel roll
   { p: 0.80, v: Math.PI / 4 }, // partly laid by impact
   { p: 0.87, v: 0           },
   { p: 1.00, v: 0           },
@@ -271,9 +279,9 @@ export default function Cookie({ scrollProgress, mouseRef, presentationEnabled }
     }
     // Scene 4+: rotation.y driven by roll tangent below
 
-    // ── Scene 4: ROLL along S-curve (0.44 → 0.76) ────────────────────────
-    if (p >= 0.44 && p < 0.76) {
-      const rollT   = localT(p, 0.44, 0.76);
+    // ── Scene 4 Phase A: ARC to right side (0.44 → PHASE_B_SPLIT) ───────────
+    if (p >= 0.44 && p < PHASE_B_SPLIT) {
+      const rollT   = localT(p, 0.44, PHASE_B_SPLIT);
       const point   = ROLL_CURVE.getPointAt(rollT);
       const tangent = ROLL_CURVE.getTangentAt(rollT);
 
@@ -281,7 +289,6 @@ export default function Cookie({ scrollProgress, mouseRef, presentationEnabled }
       grp.position.set(point.x, kf(KF_POS_Y_BASE, p), point.z);
 
       // Physically-based rolling rotation:
-      // rotation = distance_traveled / wheel_radius_world
       const arcLen          = rollT * ROLL_CURVE_LENGTH;
       const apparentRadius  = COOKIE_RADIUS_AT_SCALE_1 * sc;
       grp.rotation.z        = -(arcLen / apparentRadius);
@@ -290,7 +297,7 @@ export default function Cookie({ scrollProgress, mouseRef, presentationEnabled }
       const angle = Math.atan2(tangent.x, tangent.z);
       grp.rotation.y = angle;
 
-      // Micro bounce — more subtle at reduced scale
+      // Micro bounce — subtle at reduced scale
       const bounce = Math.abs(Math.sin(rollT * Math.PI * 5)) * 0.12;
       grp.position.y += bounce;
 
@@ -298,6 +305,32 @@ export default function Cookie({ scrollProgress, mouseRef, presentationEnabled }
       const targetTilt = -deltaP * TILT_SENSITIVITY;
       tiltRef.current = lerp(tiltRef.current, targetTilt, 0.08);
       grp.rotation.x += tiltRef.current * 0.4;
+
+    // ── Scene 4 Phase B: WHEEL ROLL right → left (PHASE_B_SPLIT → 0.76) ────
+    } else if (p >= PHASE_B_SPLIT && p < 0.76) {
+      const rollT = localT(p, PHASE_B_SPLIT, 0.76);
+
+      // Straight horizontal roll from right side to off-screen left
+      const x = lerp(PHASE_B_START_X, PHASE_B_END_X, rollT);
+      grp.position.set(x, kf(KF_POS_Y_BASE, p), PHASE_B_START_Z);
+
+      // Wheel spin: accumulate Phase A arc distance + Phase B horizontal distance
+      const phaseBDist     = Math.abs(PHASE_B_END_X - PHASE_B_START_X) * rollT;
+      const apparentRadius = COOKIE_RADIUS_AT_SCALE_1 * sc;
+      grp.rotation.z       = -(ROLL_CURVE_LENGTH + phaseBDist) / apparentRadius;
+
+      // Blend rotation.y from arc-end direction to leftward (-π/2) smoothly
+      const yBlend = Math.min(1, rollT * 8); // blend over first ~12% of Phase B
+      grp.rotation.y = lerp(ARC_FINAL_ROTATION_Y, -Math.PI / 2, yBlend);
+
+      // Wheel bounce while rolling
+      const bounce = Math.abs(Math.sin(rollT * Math.PI * 5)) * 0.06;
+      grp.position.y += bounce;
+
+      // Scroll-direction lean
+      const targetTilt = -deltaP * TILT_SENSITIVITY;
+      tiltRef.current  = lerp(tiltRef.current, targetTilt, 0.08);
+      grp.rotation.x  += tiltRef.current * 0.3;
 
     } else if (p < 0.44) {
       // Scenes 1-3: stationary at origin (no path movement), gentle float + mouse parallax
