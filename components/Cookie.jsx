@@ -306,17 +306,24 @@ export default function Cookie({ scrollProgress, mouseRef, presentationEnabled }
         grp.rotation.z = Math.sin(t * 2.2) * 0.025;
       }
 
-      // Smooth mouse-parallax influence — stronger in hero scene 1, subtle later
+      // ── Face-the-cursor (look-at / cursor-tracking effect) ───────────────
+      // The cookie tilts to "face" the cursor and holds that pose while the
+      // cursor is still.  Uses a delta-based approach so the rotation target
+      // is bounded (no continuous spinning from a stationary cursor).
+      //   mouseXRef stores the current face-rotation target for Y axis
+      //   mouseYRef stores the current face-rotation target for X axis
       const mx = mouseRef ? mouseRef.current.x : _mouse.x;
       const my = mouseRef ? mouseRef.current.y : _mouse.y;
-      mouseXRef.current = lerp(mouseXRef.current, mx, 0.04);
-      mouseYRef.current = lerp(mouseYRef.current, my, 0.04);
-      // Scene 1 (hero): stronger parallax for interactive feel
-      const parStrength = p < 0.15 ? 0.12 : 0.06;
-      const parStrengthY = p < 0.15 ? 0.08 : 0.04;
-      // Apply only when cookie is stable (scenes 1-3); mix with existing rotY
-      grp.rotation.y += mouseXRef.current * parStrength;
-      grp.rotation.x += mouseYRef.current * parStrengthY;
+      // Max angles: more expressive in scene 1 hero, subtler in later scenes
+      const MAX_FACE_Y = p < 0.18 ? 0.32 : 0.16;
+      const MAX_FACE_X = p < 0.18 ? 0.14 : 0.08;
+      const newFaceY = lerp(mouseXRef.current, mx * MAX_FACE_Y, 0.06);
+      const newFaceX = lerp(mouseYRef.current, -my * MAX_FACE_X, 0.06);
+      // Add only the per-frame delta so the cookie holds its tilt when still
+      grp.rotation.y += newFaceY - mouseXRef.current;
+      grp.rotation.x += newFaceX - mouseYRef.current;
+      mouseXRef.current = newFaceY;
+      mouseYRef.current = newFaceX;
 
     } else {
       // Scenes 5-6: cookie rests at plate origin then fades out

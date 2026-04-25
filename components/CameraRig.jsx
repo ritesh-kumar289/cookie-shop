@@ -3,27 +3,28 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
 // ─── Camera keyframes ────────────────────────────────────────────────────────
-// New timeline (matches Cookie.jsx / CookiesPlate.jsx):
-//  0.00  Scene 1 : top-down reveal
-//  0.15  Scene 2 : orbit angle
-//  0.30  Scene 3 : angled close
-//  0.44  Scene 4 : eye-level roll start
-//  0.56  Scene 4A: gentle orbit — cookie slows, anticipation builds
-//  0.68  Scene 4B: cookie rolls toward camera — slight zoom, dramatic
-//  0.76  Scene 5 : impact follow
-//  0.87  Scene 6 : begin cinematic zoom-out hero reveal
-//  1.00  Scene 6 : full plate, camera zoomed out + panned right
+// Timeline aligned to 5-scene scroll (scene boundaries at 0.18/0.36/0.54/0.76)
+// End-scene (0.76–1.00): cinematic zoom-IN → front → top-45° → slight rotation
 const KEYFRAMES = [
-  { p: 0.00, pos: [0,    0.5,  4.0 ], target: [0, 0.3, 0] },  // front view — hero reveal
-  { p: 0.15, pos: [2.8,  2.0,  2.8 ], target: [0, 0,   0] },  // orbit start
-  { p: 0.30, pos: [1.8,  0.9,  3.5 ], target: [0, 0,   0] },  // angled
-  { p: 0.44, pos: [0,    0.4,  4.5 ], target: [0, 0,   0] },  // eye-level
-  { p: 0.56, pos: [-2.2, 1.2,  4.8 ], target: [0, 0,   2] },  // Scene 4A: orbit
-  { p: 0.68, pos: [0,    0.2,  5.5 ], target: [0, 0,   3] },  // Scene 4B: toward cam
+  { p: 0.00, pos: [0,    0.5,  4.0 ], target: [0, 0.3, 0] },  // front hero
+  { p: 0.18, pos: [2.8,  2.0,  2.8 ], target: [0, 0,   0] },  // orbit start
+  { p: 0.36, pos: [1.8,  0.9,  3.5 ], target: [0, 0,   0] },  // angled
+  { p: 0.54, pos: [0,    0.4,  4.5 ], target: [0, 0,   0] },  // eye-level
+  { p: 0.62, pos: [-2.2, 1.2,  4.8 ], target: [0, 0,   2] },  // gentle orbit
+  { p: 0.70, pos: [0,    0.2,  5.5 ], target: [0, 0,   3] },  // toward cam
   { p: 0.76, pos: [-1.0, 0.8,  4.2 ], target: [0, 0,   0] },  // impact follow
-  { p: 0.87, pos: [1.5,  1.8,  3.5 ], target: [0, 0,   0] },  // hero begin
-  { p: 1.00, pos: [3.0,  2.8,  4.0 ], target: [0, 0,   0] },  // zoom out + pan right
+  // ── Cinematic plate reveal: zoom IN, swing up, slight rotation ────────────
+  { p: 0.84, pos: [0,    0.8,  2.8 ], target: [0, 0,   0] },  // zoom into front
+  { p: 0.92, pos: [0.6,  2.4,  2.0 ], target: [0, 0,   0] },  // swing to top-45°
+  { p: 1.00, pos: [1.8,  2.8,  1.8 ], target: [0, 0,   0] },  // slight rotation
 ];
+
+// ─── Cinematic page-load intro ────────────────────────────────────────────────
+// Camera starts elevated (bird's-eye) and sweeps down to the hero front view.
+// Duration is in seconds. Aborts instantly if the user starts scrolling.
+const INTRO_DURATION    = 3.2;
+const INTRO_START_POS   = [0, 4.5, 5.5];
+const INTRO_START_FOV   = 62;
 
 function smoothstep(t) {
   const c = Math.min(1, Math.max(0, t));
@@ -63,15 +64,14 @@ function lerpKeyframes(progress) {
 }
 
 // ── Subtle handheld micro-movement parameters ──────────────────────────────────
-// Two oscillators at inharmonic frequencies blend to create organic camera drift.
-const HANDHELD_FREQ_X_LOW  = 0.37;  // Hz – primary horizontal sway
-const HANDHELD_FREQ_X_HIGH = 0.71;  // Hz – secondary horizontal shimmer
-const HANDHELD_AMP_X_LOW   = 0.006; // world units amplitude (primary)
-const HANDHELD_AMP_X_HIGH  = 0.003; // world units amplitude (secondary)
-const HANDHELD_FREQ_Y_LOW  = 0.43;  // Hz – primary vertical drift
-const HANDHELD_FREQ_Y_HIGH = 0.89;  // Hz – secondary vertical shimmer
-const HANDHELD_AMP_Y_LOW   = 0.005; // world units amplitude (primary)
-const HANDHELD_AMP_Y_HIGH  = 0.002; // world units amplitude (secondary)
+const HANDHELD_FREQ_X_LOW  = 0.37;
+const HANDHELD_FREQ_X_HIGH = 0.71;
+const HANDHELD_AMP_X_LOW   = 0.006;
+const HANDHELD_AMP_X_HIGH  = 0.003;
+const HANDHELD_FREQ_Y_LOW  = 0.43;
+const HANDHELD_FREQ_Y_HIGH = 0.89;
+const HANDHELD_AMP_Y_LOW   = 0.005;
+const HANDHELD_AMP_Y_HIGH  = 0.002;
 
 // Reusable vectors (avoid per-frame allocation)
 const _targetPos  = new THREE.Vector3();
@@ -81,30 +81,54 @@ export default function CameraRig({ scrollProgress, mouseRef }) {
   const { camera } = useThree();
   const currentLookAt = useRef(new THREE.Vector3(0, 0, 0));
   const timeRef = useRef(0);
-  // Smoothed mouse offsets for camera lag (different lerp speed than cookie)
   const camMouseX = useRef(0);
   const camMouseY = useRef(0);
+  // Intro animation state
+  const introElapsedRef = useRef(0);
 
   useFrame((_, delta) => {
     timeRef.current += delta;
     const t = timeRef.current;
     const p = scrollProgress.current;
-    const { pos, target } = lerpKeyframes(p);
 
-    // ── FOV: gently narrows toward final reveal ────────────────────────────
-    // Opens slightly wider for the zoom-out in the final scene
-    let fov = 45;
-    if (p < 0.87) {
-      fov = 45 - p * 5;         // 45° → ~40° through roll
+    // ── Cinematic intro: abort on first scroll ─────────────────────────────
+    if (p >= 0.015) introElapsedRef.current = INTRO_DURATION;
+    const introActive = introElapsedRef.current < INTRO_DURATION;
+    if (introActive) introElapsedRef.current += delta;
+
+    // ── Determine desired position & FOV ──────────────────────────────────
+    let desiredX, desiredY, desiredZ;
+    let desiredLookX = 0, desiredLookY = 0.3, desiredLookZ = 0;
+    let fov;
+
+    if (introActive) {
+      // Sweep from bird's-eye to hero front view
+      const introT  = smoothstep(Math.min(1, introElapsedRef.current / INTRO_DURATION));
+      const endPos  = KEYFRAMES[0].pos;
+      desiredX      = INTRO_START_POS[0] + (endPos[0] - INTRO_START_POS[0]) * introT;
+      desiredY      = INTRO_START_POS[1] + (endPos[1] - INTRO_START_POS[1]) * introT;
+      desiredZ      = INTRO_START_POS[2] + (endPos[2] - INTRO_START_POS[2]) * introT;
+      desiredLookX  = 0; desiredLookY = 0.3 * (1 - introT); desiredLookZ = 0;
+      fov           = INTRO_START_FOV + (45 - INTRO_START_FOV) * introT; // 62→45°
     } else {
-      const finalT = (p - 0.87) / 0.13;
-      fov = 40 + finalT * 8;    // 40° → 48° for cinematic zoom-out reveal
+      const { pos, target } = lerpKeyframes(p);
+      [desiredX, desiredY, desiredZ]         = pos;
+      [desiredLookX, desiredLookY, desiredLookZ] = target;
+
+      // ── FOV: narrows through early scenes → zoom IN for plate reveal ────
+      if (p < 0.76) {
+        fov = 45 - p * 5;               // 45° → ~41° through roll
+      } else {
+        const finalT = (p - 0.76) / 0.24;
+        fov = 41 - finalT * 11;         // 41° → 30° — cinematic zoom IN
+      }
     }
+
     camera.fov = fov;
     camera.updateProjectionMatrix();
 
     // ── Subtle parallax Y drift ────────────────────────────────────────────
-    const parallaxY = -p * 0.3;
+    const parallaxY = introActive ? 0 : -p * 0.3;
 
     // ── Subtle handheld micro-movement ────────────────────────────────────
     const microX = Math.sin(t * HANDHELD_FREQ_X_LOW)  * HANDHELD_AMP_X_LOW
@@ -112,8 +136,8 @@ export default function CameraRig({ scrollProgress, mouseRef }) {
     const microY = Math.cos(t * HANDHELD_FREQ_Y_LOW)  * HANDHELD_AMP_Y_LOW
                  + Math.cos(t * HANDHELD_FREQ_Y_HIGH) * HANDHELD_AMP_Y_HIGH;
 
-    // ── Mouse parallax on camera (subtle shift, only in idle/early scenes) ─
-    if (mouseRef && p < 0.44) {
+    // ── Mouse parallax on camera (idle / early scenes) ─────────────────────
+    if (mouseRef && p < 0.54) {
       const mx = mouseRef.current.x;
       const my = mouseRef.current.y;
       camMouseX.current += (mx * 0.04 - camMouseX.current) * 0.03;
@@ -124,17 +148,16 @@ export default function CameraRig({ scrollProgress, mouseRef }) {
     }
 
     _targetPos.set(
-      pos[0] + microX + camMouseX.current,
-      pos[1] + parallaxY + microY + camMouseY.current,
-      pos[2]
+      desiredX + microX + camMouseX.current,
+      desiredY + parallaxY + microY + camMouseY.current,
+      desiredZ
     );
-    _lookTarget.set(target[0], target[1], target[2]);
+    _lookTarget.set(desiredLookX, desiredLookY, desiredLookZ);
 
-    // Smooth camera position (lerp factor 0.04 = cinematic lag)
-    camera.position.lerp(_targetPos, 0.04);
-
-    // Smooth lookAt
-    currentLookAt.current.lerp(_lookTarget, 0.04);
+    // Faster lerp during intro for crisper cinematic feel
+    const lerpFactor = introActive ? 0.07 : 0.04;
+    camera.position.lerp(_targetPos, lerpFactor);
+    currentLookAt.current.lerp(_lookTarget, lerpFactor);
     camera.lookAt(currentLookAt.current);
   });
 

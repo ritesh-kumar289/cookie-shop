@@ -409,3 +409,76 @@ a:hover {
   transform: scale(1.7);
   background: var(--color-accent);
 }
+
+/* ─── Cookie jar overlay ─────────────────────────────────────────────── */
+
+.jar-overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -52%);
+  z-index: 5;
+  pointer-events: none;
+  width: auto;
+  height: 78vh;
+  /* opacity controlled directly via JS ref for 60fps performance */
+}
+
+.jar-overlay img {
+  height: 100%;
+  width: auto;
+  display: block;
+  filter: drop-shadow(0 12px 40px rgba(0, 0, 0, 0.10));
+  user-select: none;
+}
+
+/* ─── Scene emoji decoration ─────────────────────────────────────────── */
+
+.scene-label .scene-emoji {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-text-main);
+  margin-top: 0;
+  margin-bottom: 0.3rem;
+  opacity: 1;
+  display: block;
+}
+
+/* ─── Final scene "Discover More" CTA ───────────────────────────────── */
+
+.scene-discover-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 2rem;
+  padding: 0.76rem 2.1rem;
+  border: none;
+  border-radius: 2rem;
+  background: var(--color-primary);
+  color: #FFF8F1;
+  font-family: 'Inter', 'Poppins', sans-serif;
+  font-size: clamp(0.65rem, 1.05vw, 0.82rem);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  pointer-events: auto;        /* scene-label parent has pointer-events:none */
+  text-decoration: none;
+  transition: background 0.25s ease, transform 0.22s ease, box-shadow 0.22s ease;
+  box-shadow: 0 4px 20px rgba(184, 116, 42, 0.35);
+}
+
+.scene-discover-btn:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-2px) translateX(3px);
+  box-shadow: 0 8px 28px rgba(140, 74, 30, 0.45);
+  color: #FFF8F1;
+}
+
+@media (max-width: 768px) {
+  .jar-overlay {
+    height: 55vh;
+    top: 42%;
+  }
+}

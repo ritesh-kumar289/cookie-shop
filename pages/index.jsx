@@ -7,56 +7,58 @@ import Head from 'next/head';
 const Scene = dynamic(() => import('../components/Scene'), { ssr: false });
 const ScrollController = dynamic(() => import('../components/ScrollController'), { ssr: false });
 
+// ─── Cookie jar PNG (transparent glass jar) ───────────────────────────────────
+// Hosted on GitHub user-attachments CDN; loaded client-side by the browser.
+const JAR_IMG_URL =
+  'https://github.com/user-attachments/assets/e7daf5ae-6151-4dd6-b681-28c297a944f0';
+
 // ─── Scene copy ───────────────────────────────────────────────────────────────
+// 5 scenes matching the provided brief headings, body text and emoji icons.
 const SCENES = [
   {
     id: 'scene1',
     startPct: 0,
-    endPct: 0.16,
-    title: 'Crunch Bites',
-    tagline: 'Crunchy cookies, made for every moment.',
-    sub: null,
-    body: 'Handcrafted with the finest ingredients. Every batch baked to a perfect golden crunch.',
+    endPct: 0.18,
+    emoji: '🍪',
+    title: 'The First Glance',
+    body: 'From the very first look, Crunch Bites invites you into a world of warmth and indulgence. Each cookie is crafted to be more than just a snack—it\'s an experience that begins with texture, aroma, and visual delight.',
+  },
+  {
+    id: 'scene2',
+    startPct: 0.18,
+    endPct: 0.36,
+    emoji: '🔥',
+    title: 'Crafted for Crunch',
+    body: 'Every Crunch Bites cookie is designed with one goal in mind—perfect crunch. Carefully balanced ingredients and precise baking techniques ensure that every bite delivers a satisfying texture. It\'s not just baking—it\'s craftsmanship, where every detail matters and every crunch is intentional.',
   },
   {
     id: 'scene3',
-    startPct: 0.27,
-    endPct: 0.44,
-    title: 'Crafted for Crunch',
-    tagline: null,
-    sub: 'Every bite tells a story',
-    body: 'From the first crack to the last crumb — texture, warmth, and flavour in perfect harmony.',
+    startPct: 0.36,
+    endPct: 0.54,
+    emoji: '🌊',
+    title: 'Rolling Into Perfection',
+    body: 'As the cookie moves, it represents the journey from raw ingredients to a perfected creation. Each rotation reflects the transformation process—mixing, shaping, baking, and finishing. This scene symbolizes momentum, refinement, and the pursuit of excellence.',
   },
   {
-    id: 'scene4a',
-    startPct: 0.56,
-    endPct: 0.68,
-    title: 'The Journey Begins',
-    tagline: null,
-    sub: 'Rolling toward perfection.',
-    body: 'Every bite is crafted with precision, texture, and flavour — designed to deliver the perfect crunch.',
-  },
-  {
-    id: 'scene4b',
-    startPct: 0.68,
+    id: 'scene4',
+    startPct: 0.54,
     endPct: 0.76,
-    title: 'Perfectly Baked',
-    tagline: null,
-    sub: 'Golden. Warm. Irresistible.',
-    body: 'Slow-baked at just the right temperature so every chip melts and every edge stays perfectly crisp.',
+    emoji: '💥',
+    title: 'The Moment of Impact',
+    body: 'The moment the cookie meets its destination is where everything comes together. Flavor, texture, and craftsmanship collide to create a satisfying experience. This is the point where anticipation turns into reality, where the crunch becomes real and memorable.',
   },
   {
-    id: 'final',
-    startPct: 0.84,
+    id: 'scene5',
+    startPct: 0.76,
     endPct: 1.0,
-    title: 'Made to be Remembered',
-    tagline: null,
-    sub: 'Crunch Bites — Order yours today.',
-    body: 'A moment of pure indulgence. Share the crunch with the people who matter most.',
+    emoji: '✨',
+    title: 'Made to Be Remembered',
+    body: 'Crunch Bites isn\'t just about cookies—it\'s about creating lasting impressions. Every detail, from the ingredients to the final presentation, is designed to leave a mark. With every bite, Crunch Bites delivers not just taste, but a memory worth coming back to.',
   },
 ];
 
-const SCENE_MILESTONES = [0, 0.16, 0.30, 0.44, 0.56, 0.68, 0.76, 0.84];
+// 5 milestones — one per scene start; drives the progress-dot indicator
+const SCENE_MILESTONES = [0, 0.18, 0.36, 0.54, 0.76];
 
 // ─── Animation variants ───────────────────────────────────────────────────────
 const titleVariants = {
@@ -124,6 +126,8 @@ export default function Home() {
   const [presentationEnabled, setPresentationEnabled] = useState(true);
   // Track last presentationEnabled to avoid unnecessary state updates
   const prevPERef = useRef(true);
+  // Direct DOM ref for jar opacity — avoids React re-render on every scroll frame
+  const jarRef = useRef(null);
 
   // Track cursor position so 3D components can apply mouse-parallax effects
   useEffect(() => {
@@ -148,7 +152,7 @@ export default function Home() {
 
         setShowScrollHint(p < 0.03);
 
-        // Active dot
+        // Active dot — one per scene milestone
         let dotIdx = 0;
         for (let i = SCENE_MILESTONES.length - 1; i >= 0; i--) {
           if (p >= SCENE_MILESTONES[i]) { dotIdx = i; break; }
@@ -162,12 +166,20 @@ export default function Home() {
         }
         setActiveScene(found);
 
-        // PresentationControls: enable only in scene 1 (p < 0.16)
-        const newPE = p < 0.16;
+        // PresentationControls: enable only in scene 1 (p < 0.18)
+        const newPE = p < 0.18;
         if (newPE !== prevPERef.current) {
           prevPERef.current = newPE;
           setPresentationEnabled(newPE);
         }
+      }
+
+      // Jar overlay opacity — directly manipulate DOM to avoid per-frame re-render
+      if (jarRef.current) {
+        let jarOp = 0;
+        if (p < 0.18)       jarOp = 1;
+        else if (p < 0.22)  jarOp = 1 - (p - 0.18) / 0.04;
+        jarRef.current.style.opacity = jarOp;
       }
 
       rafId = requestAnimationFrame(tick);
@@ -194,6 +206,19 @@ export default function Home() {
           scrollProgress={scrollProgress}
           mouseRef={mouseRef}
           presentationEnabled={presentationEnabled}
+        />
+      </div>
+
+      {/* ── Cookie jar overlay ──────────────────────────────────────────────
+          Transparent PNG sits above the canvas (z-5) so the cookie 3D model
+          shows through the glass and appears to live inside the jar.
+          Opacity is driven directly via jarRef to avoid per-frame re-renders.
+      ──────────────────────────────────────────────────────────────────── */}
+      <div className="jar-overlay" ref={jarRef}>
+        <img
+          src={JAR_IMG_URL}
+          alt=""
+          draggable={false}
         />
       </div>
 
@@ -260,18 +285,10 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.72, duration: 0.8 }}
             >
-              Every bite tells a story of quality,<br />
-              passion and perfection.
+              From the very first look, Crunch Bites invites you into a world
+              of warmth and indulgence. Each cookie is crafted to be more than
+              just a snack.
             </motion.p>
-            <motion.button
-              className="hero-cta"
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.92, duration: 0.7 }}
-              onClick={() => window.scrollTo({ top: window.innerHeight * 1.5, behavior: 'smooth' })}
-            >
-              Discover More&nbsp;&nbsp;→
-            </motion.button>
           </motion.aside>
         )}
       </AnimatePresence>
@@ -329,19 +346,26 @@ export default function Home() {
               animate="visible"
               exit="exit"
             >
-              <motion.h1 variants={titleVariants}>{currentScene.title}</motion.h1>
-              {currentScene.tagline && (
-                <motion.p className="tagline" variants={subVariants}>
-                  {currentScene.tagline}
+              {currentScene.emoji && (
+                <motion.p className="scene-emoji" variants={subVariants}>
+                  {currentScene.emoji}
                 </motion.p>
               )}
-              {currentScene.sub && (
-                <motion.p variants={subVariants}>{currentScene.sub}</motion.p>
-              )}
+              <motion.h1 variants={titleVariants}>{currentScene.title}</motion.h1>
               {currentScene.body && (
                 <motion.p className="scene-body" variants={subVariants}>
                   {currentScene.body}
                 </motion.p>
+              )}
+              {/* ── "Discover More" CTA — final scene only ─────────────────── */}
+              {currentScene.id === 'scene5' && (
+                <motion.a
+                  className="scene-discover-btn"
+                  href="#order"
+                  variants={subVariants}
+                >
+                  Discover More &nbsp;&nbsp;→
+                </motion.a>
               )}
             </motion.div>
           )}
