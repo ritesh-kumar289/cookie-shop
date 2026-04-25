@@ -203,7 +203,7 @@ export default function Home() {
       {/* Tall scroll track (900vh) – pointer-events none so scroll passes through */}
       <div id="scroll-container" className="scroll-container" />
 
-      {/* Brand logo */}
+      {/* Brand logo — new round-badge artwork */}
       <motion.div
         className="brand-logo"
         variants={logoVariants}
@@ -212,9 +212,9 @@ export default function Home() {
         style={{ mixBlendMode: 'multiply' }}
       >
         <img
-          src="https://github.com/user-attachments/assets/db551b4a-286d-4676-867c-d9d433d0b34d"
+          src="https://github.com/user-attachments/assets/eae77061-4e05-4e8a-b907-d53f09eea0b2"
           alt="Crunch Bites"
-          style={{ width: '140px', height: 'auto', display: 'block' }}
+          style={{ width: '160px', height: 'auto', display: 'block' }}
         />
       </motion.div>
 
