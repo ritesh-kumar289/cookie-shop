@@ -16,6 +16,7 @@ const SCENES = [
     title: 'Crunch Bites',
     tagline: 'Crunchy cookies, made for every moment.',
     sub: null,
+    body: 'Handcrafted with the finest ingredients. Every batch baked to a perfect golden crunch.',
   },
   {
     id: 'scene3',
@@ -24,6 +25,7 @@ const SCENES = [
     title: 'Crafted for Crunch',
     tagline: null,
     sub: 'Every bite tells a story',
+    body: 'From the first crack to the last crumb — texture, warmth, and flavour in perfect harmony.',
   },
   {
     id: 'scene4a',
@@ -32,6 +34,7 @@ const SCENES = [
     title: 'The Journey Begins',
     tagline: null,
     sub: 'Rolling toward perfection.',
+    body: 'Every bite is crafted with precision, texture, and flavour — designed to deliver the perfect crunch.',
   },
   {
     id: 'scene4b',
@@ -40,6 +43,7 @@ const SCENES = [
     title: 'Perfectly Baked',
     tagline: null,
     sub: 'Golden. Warm. Irresistible.',
+    body: 'Slow-baked at just the right temperature so every chip melts and every edge stays perfectly crisp.',
   },
   {
     id: 'final',
@@ -48,6 +52,7 @@ const SCENES = [
     title: 'Made to be Remembered',
     tagline: null,
     sub: 'Crunch Bites — Order yours today.',
+    body: 'A moment of pure indulgence. Share the crunch with the people who matter most.',
   },
 ];
 
@@ -172,6 +177,7 @@ export default function Home() {
         variants={logoVariants}
         initial="hidden"
         animate="visible"
+        style={{ mixBlendMode: 'multiply' }}
       >
         <img
           src="https://github.com/user-attachments/assets/db551b4a-286d-4676-867c-d9d433d0b34d"
@@ -215,6 +221,11 @@ export default function Home() {
               )}
               {currentScene.sub && (
                 <motion.p variants={subVariants}>{currentScene.sub}</motion.p>
+              )}
+              {currentScene.body && (
+                <motion.p className="scene-body" variants={subVariants}>
+                  {currentScene.body}
+                </motion.p>
               )}
             </motion.div>
           )}

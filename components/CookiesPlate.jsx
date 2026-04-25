@@ -93,15 +93,20 @@ export default function CookiesPlate({ scrollProgress }) {
       opacity = 1;
     }
 
-    grp.traverse((child) => {
-      if (child.isMesh && child.material) {
-        const mats = Array.isArray(child.material) ? child.material : [child.material];
-        mats.forEach((m) => {
-          if (m.transparent !== true) m.transparent = true;
-          if (Math.abs(m.opacity - opacity) > 0.001) m.opacity = opacity;
-        });
-      }
-    });
+    // Hide entirely when opacity is zero — avoids traversal cost and prevents
+    // any ghost pixels while the cookie-to-plate transition is happening.
+    grp.visible = opacity > 0.005;
+    if (grp.visible) {
+      grp.traverse((child) => {
+        if (child.isMesh && child.material) {
+          const mats = Array.isArray(child.material) ? child.material : [child.material];
+          mats.forEach((m) => {
+            if (m.transparent !== true) m.transparent = true;
+            if (Math.abs(m.opacity - opacity) > 0.001) m.opacity = opacity;
+          });
+        }
+      });
+    }
 
     // ── Scale ─────────────────────────────────────────────────────────────
     // After bbox normalisation the model is 1 world-unit wide at scale 1.

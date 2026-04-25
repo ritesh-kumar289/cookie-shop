@@ -72,14 +72,6 @@ const ROLL_CURVE_LENGTH = ROLL_CURVE.getLength();
 
 // ── Keyframe tables ───────────────────────────────────────────────────────────
 
-const KF_OPACITY = [
-  { p: 0.00, v: 0 },
-  { p: 0.06, v: 1 },   // fade in during scene 1
-  { p: 0.70, v: 1 },
-  { p: 0.76, v: 0 },   // fully invisible BEFORE position resets at p=0.76 (prevents visible jump)
-  { p: 1.00, v: 0 },
-];
-
 // ── Scale keyframes ────────────────────────────────────────────────────────────
 // Model is normalised to 1 world-unit wide in the useMemo below, so these
 // values represent the cookie's real diameter in world units.
@@ -192,6 +184,16 @@ export default function Cookie({ scrollProgress, mouseRef }) {
     c.position.sub(centre);
 
     // ── Step 4: per-mesh material & culling fixes ─────────────────────────
+    //
+    // WHY transparent: false
+    // ──────────────────────
+    // THREE.js MeshStandardMaterial uses the alpha channel of the base-color
+    // texture (m.map) as a per-pixel opacity mask whenever transparent:true is
+    // set — regardless of alphaTest or alphaMap.  The cookie GLB's base-color
+    // texture has alpha-cutout "bite marks" baked in; with transparent:true those
+    // pixels render as fully transparent holes.  Setting transparent:false (and
+    // opacity:1) forces opaque rendering so the cookie is always 100% solid.
+    // Appear/disappear is handled by grp.visible (see useFrame below).
     c.traverse((child) => {
       if (child.isMesh) {
         child.frustumCulled = false;
@@ -203,9 +205,10 @@ export default function Cookie({ scrollProgress, mouseRef }) {
           m.side        = THREE.DoubleSide; // no invisible back-faces on near-clip
           m.depthWrite  = true;
           m.depthTest   = true;
-          m.transparent = true;             // keep — needed for opacity animation
-          m.alphaTest   = 0;                // never discard pixels via texture alpha
-          m.alphaMap    = null;             // remove alpha mask that was punching holes
+          m.transparent = false;            // CRITICAL: prevents texture-alpha holes
+          m.opacity     = 1;               // always fully opaque
+          m.alphaTest   = 0;
+          m.alphaMap    = null;
           m.needsUpdate = true;
         });
       }
@@ -228,21 +231,13 @@ export default function Cookie({ scrollProgress, mouseRef }) {
     const deltaP = Math.min(MAX_SCROLL_DELTA, Math.max(-MAX_SCROLL_DELTA, rawDeltaP));
     prevScrollProgressRef.current = p;
 
-    // ── Opacity + visibility ──────────────────────────────────────────────
-    const opacity = kf(KF_OPACITY, p);
-    // Hide entirely when invisible — avoids any per-frame material traversal
-    // cost and guarantees no ghost render after the roll exits.
-    grp.visible = opacity > 0.005;
-    if (grp.visible) {
-      grp.traverse((child) => {
-        if (child.isMesh && child.material) {
-          const mats = Array.isArray(child.material) ? child.material : [child.material];
-          mats.forEach((m) => {
-            if (Math.abs(m.opacity - opacity) > 0.001) m.opacity = opacity;
-          });
-        }
-      });
-    }
+    // ── Visibility ────────────────────────────────────────────────────────
+    // Materials are always opaque (transparent:false) to prevent texture-alpha
+    // holes.  Appear/disappear is handled by toggling grp.visible instead of
+    // animating material opacity.
+    //   • p < 0.05   → cookie not yet revealed (camera still settling)
+    //   • p ≥ 0.75   → cookie fully gone before roll→else branch switches at 0.76
+    grp.visible = (p >= 0.05 && p < 0.75);
 
     // ── Scale ─────────────────────────────────────────────────────────────
     const sc = kf(KF_SCALE, p);
