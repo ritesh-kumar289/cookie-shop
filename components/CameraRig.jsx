@@ -4,31 +4,41 @@ import * as THREE from 'three';
 
 // ─── Camera keyframes ────────────────────────────────────────────────────────
 // Timeline:
-//  Scene 1 (0.00-0.12): flat cookie on plate — camera slightly elevated, looking down
-//  Scene 2 (0.12-0.28): cookie rises upright
+//  Scene 1 (0.00-0.04): flat cookie on plate — camera slightly elevated, looking down
+//  Scene 2 (0.04-0.28): cookie rises upright
 //  Scene 3 (0.28-0.44): cookie wheels in place, plate exits — camera swings to orbit
-//  Scene 4 Phase A (0.44-0.76): cookie follows full arc left then right
-//  Scene 4 Phase B (0.76-0.88): cookie rolls as wheel RIGHT → LEFT
+//  Scene 4 Phase A (0.44-0.76): cinematic arc tracking — left sweep → near-pass zoom → right swing
+//  Scene 4 Phase B (0.76-0.88): cookie rolls as wheel RIGHT → LEFT + plate reveal zoom
 //  Showcase (0.88-1.00): plate reveal
 const KEYFRAMES = [
   { p: 0.00, pos: [0,    1.4,  4.2], target: [0, -0.20, 0] }, // bird's-eye: flat cookie on plate
-  { p: 0.12, pos: [0,    1.4,  4.2], target: [0, -0.20, 0] }, // holds for flat scene
+  { p: 0.04, pos: [0,    1.4,  4.2], target: [0, -0.20, 0] }, // holds for flat scene (shortened)
   { p: 0.28, pos: [0,    0.5,  4.0], target: [0,  0.10, 0] }, // levels up as cookie stands
   { p: 0.44, pos: [0.5,  1.0,  4.5], target: [0,   0.1, 0] }, // arc start — slight lean
-  { p: 0.76, pos: [0.8,  0.9,  4.3], target: [0.6, 0.0, 0] }, // arc end, cookie at right
-  { p: 0.81, pos: [0,    0.8,  4.0], target: [0,   0,   0] }, // cookie crosses centre
-  { p: 0.86, pos: [-0.4, 0.8,  4.0], target: [0,   0,   0] }, // cookie exits left
-  { p: 0.88, pos: [0,    0.8,  3.5], target: [0,   0,   0] }, // transition to plate
+  // ── Cinematic arc tracking ─────────────────────────────────────────────────
+  { p: 0.50, pos: [-0.6, 1.0,  4.3], target: [-0.4, 0, 0.2] }, // track cookie sweeping left
+  { p: 0.57, pos: [0,    0.6,  3.6], target: [0,    0, 0.4] }, // pull forward — cookie near camera
+  { p: 0.65, pos: [0.7,  1.0,  4.3], target: [0.5,  0, 0]   }, // track cookie swinging right
+  { p: 0.76, pos: [0.8,  0.9,  4.3], target: [0.6, 0.0, 0]  }, // arc end, cookie at right
+  // ── Plate reveal zoom ─────────────────────────────────────────────────────
+  { p: 0.78, pos: [0,    0.7,  3.2], target: [0,    0,   0]  }, // zoom in — plate emerges behind tyre
+  { p: 0.81, pos: [0,    0.8,  4.0], target: [0,    0,   0]  }, // cookie crosses centre
+  { p: 0.86, pos: [-0.4, 0.8,  4.0], target: [0,    0,   0]  }, // cookie exits left
+  { p: 0.88, pos: [0,    0.8,  3.5], target: [0,    0,   0]  }, // transition to plate
   // ── Cinematic plate reveal: zoom IN, swing up, slight rotation ────────────
-  { p: 0.92, pos: [0.6,  2.4,  2.0], target: [0,  0,    0] }, // swing to top-45°
-  { p: 1.00, pos: [1.8,  2.8,  1.8], target: [0,  0,    0] }, // slight rotation
+  { p: 0.92, pos: [0.6,  2.4,  2.0], target: [0,  0,    0]  }, // swing to top-45°
+  { p: 1.00, pos: [1.8,  2.8,  1.8], target: [0,  0,    0]  }, // slight rotation
 ];
 
 // ─── FOV keyframes ──────────────────────────────────────────────────────────
 const FOV_KEYFRAMES = [
   { p: 0.00, v: 45 },
   { p: 0.44, v: 43 }, // pre-arc: standard view
+  { p: 0.50, v: 47 }, // slight widen as cookie starts sweeping left
+  { p: 0.57, v: 33 }, // dramatic ZOOM IN — cookie passing near camera
+  { p: 0.65, v: 47 }, // widen back as cookie swings right
   { p: 0.76, v: 44 }, // arc end — cookie arrives at right
+  { p: 0.78, v: 34 }, // zoom in — plate emerges behind rolling tyre
   { p: 0.81, v: 42 }, // cookie passing centre
   { p: 0.88, v: 40 }, // transition to plate
   { p: 1.00, v: 30 }, // cinematic zoom-in for plate showcase
@@ -160,8 +170,8 @@ export default function CameraRig({ scrollProgress, mouseRef }) {
     const microY = Math.cos(t * HANDHELD_FREQ_Y_LOW)  * HANDHELD_AMP_Y_LOW
                  + Math.cos(t * HANDHELD_FREQ_Y_HIGH) * HANDHELD_AMP_Y_HIGH;
 
-    // ── Mouse parallax on camera (idle / early scenes) ─────────────────────
-    if (mouseRef && p < 0.54) {
+    // ── Mouse parallax on camera (idle / early scenes only) ───────────────
+    if (mouseRef && p < 0.44) {
       const mx = mouseRef.current.x;
       const my = mouseRef.current.y;
       camMouseX.current += (mx * 0.04 - camMouseX.current) * 0.03;
@@ -178,9 +188,9 @@ export default function CameraRig({ scrollProgress, mouseRef }) {
     );
     _lookTarget.set(desiredLookX, desiredLookY, desiredLookZ);
 
-    // Faster lerp during Scene 4 arc + wheel roll for responsive camera tracking
+    // Faster lerp during Scene 4 arc + wheel roll for responsive cinematic tracking
     const lerpFactor = introActive ? 0.07 :
-      (p >= 0.44 && p < 0.89) ? 0.08 :
+      (p >= 0.44 && p < 0.89) ? 0.12 :
       0.04;
     camera.position.lerp(_targetPos, lerpFactor);
     currentLookAt.current.lerp(_lookTarget, lerpFactor);

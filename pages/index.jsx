@@ -9,23 +9,23 @@ const ScrollController = dynamic(() => import('../components/ScrollController'),
 const CookieLoader   = dynamic(() => import('../components/CookieLoader'),   { ssr: false });
 
 // ─── Scene copy ───────────────────────────────────────────────────────────────
-// 5 scenes aligned to new animation timeline:
-//  Scene1 (0.00-0.12) : cookie flat on wooden plate
-//  Scene2 (0.12-0.28) : cookie rises upright
+// 5 scenes aligned to animation timeline:
+//  Scene1 (0.00-0.04) : cookie flat on wooden plate (~1 scroll)
+//  Scene2 (0.04-0.28) : cookie rises upright
 //  Scene3 (0.28-0.44) : cookie rolls as wheel, plate exits
-//  Scene4 (0.44-0.76) : S-curve roll
+//  Scene4 (0.44-0.76) : cinematic arc + tyre roll
 //  Scene5 (0.76-1.00) : impact + showcase
 const SCENES = [
   {
     id: 'scene1',
     startPct: 0,
-    endPct: 0.18,
+    endPct: 0.10,
     title: 'The First Glance',
     body: 'From the very first look, Crunch Bites invites you into a world of warmth and indulgence. Each cookie is crafted to be more than just a snack—it\'s an experience that begins with texture, aroma, and visual delight.',
   },
   {
     id: 'scene2',
-    startPct: 0.18,
+    startPct: 0.10,
     endPct: 0.28,
     title: 'Crafted for Crunch',
     body: 'Every Crunch Bites cookie is designed with one goal in mind—perfect crunch. Carefully balanced ingredients and precise baking techniques ensure that every bite delivers a satisfying texture. It\'s not just baking—it\'s craftsmanship.',
@@ -54,7 +54,7 @@ const SCENES = [
 ];
 
 // 5 milestones — one per scene start; drives the progress-dot indicator
-const SCENE_MILESTONES = [0, 0.18, 0.28, 0.44, 0.76];
+const SCENE_MILESTONES = [0, 0.10, 0.28, 0.44, 0.76];
 
 // ─── Animation variants ───────────────────────────────────────────────────────
 const titleVariants = {
@@ -169,8 +169,8 @@ export default function Home() {
           setActiveScene(found);
         }
 
-        // PresentationControls: enable only in scene 1 flat (p < 0.12)
-        const newPE = p < 0.12;
+        // PresentationControls: enable only in scene 1 flat (p < 0.04)
+        const newPE = p < 0.04;
         if (newPE !== prevPERef.current) {
           prevPERef.current = newPE;
           setPresentationEnabled(newPE);
