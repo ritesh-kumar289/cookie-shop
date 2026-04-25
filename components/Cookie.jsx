@@ -77,9 +77,9 @@ const KF_SCALE = [
   { p: 0.00, v: 1.4 }, // cookie on plate — fits nicely inside the dish
   { p: 0.12, v: 1.4 }, // holds flat
   { p: 0.28, v: 1.6 }, // grows slightly as it stands up
-  { p: 0.44, v: 1.4 }, // roll size
-  { p: 0.76, v: 1.2 },
-  { p: 1.00, v: 1.2 },
+  { p: 0.44, v: 1.0 }, // roll start — scaled down so it doesn't loom too large
+  { p: 0.76, v: 0.85 }, // smaller still as it nears camera (Moment of Impact)
+  { p: 1.00, v: 0.85 },
 ];
 
 // rotX keyframes — NEW ORDER: flat first, then upright, then roll
