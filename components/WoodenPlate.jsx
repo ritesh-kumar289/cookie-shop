@@ -93,9 +93,9 @@ export default function WoodenPlate({ scrollProgress }) {
 
     grp.visible = true;
 
-    // Scale: plate diameter = 3.5 world-units so the cookie (1.4 units wide) sits
-    // nicely centred with margin
-    grp.scale.setScalar(3.5);
+    // Scale: plate diameter = 2.2 world-units so the cookie (1.4 units wide) sits
+    // comfortably on the plate without the plate dominating the frame
+    grp.scale.setScalar(2.2);
 
     if (p < 0.28) {
       // Resting below cookie — very gentle Y rotation to show depth

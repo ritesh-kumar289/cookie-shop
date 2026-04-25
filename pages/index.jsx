@@ -317,7 +317,7 @@ export default function Home() {
 
       {/* Scene text overlays (all scenes EXCEPT scene1, which uses HeroPanel) */}
       <div className="ui-overlay">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="sync">
           {currentScene && currentScene.id !== 'scene1' && (
             <motion.div
               key={currentScene.id}

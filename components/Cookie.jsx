@@ -61,13 +61,13 @@ function kf(frames, progress) {
 // ── Circular arc path (Scene 4): center → left arc → front → right arc → center ─
 // The arc starts and ends at (0,0,0) so it is perfectly continuous with the
 // cookie's resting position at the end of Scene 3 — no teleport.
-// Control points pull left-forward then right-forward, giving a symmetric
-// "horseshoe" sweep that reads as entering from the left, circling in front of
-// the camera, then exiting to the right before returning to the plate.
+// Wider control points (±3.0 / Z=2.4) give a larger, more dramatic sweep that
+// is clearly visible on screen. The arc peak reaches Z≈1.8, close enough to the
+// camera that the zoom-through effect in CameraRig is impactful.
 const ROLL_CURVE = new THREE.CubicBezierCurve3(
   new THREE.Vector3( 0.0,  0,  0.0),  // start: continuous with scene3 end
-  new THREE.Vector3(-2.0,  0,  1.8),  // pull left-forward (left arc half)
-  new THREE.Vector3( 2.0,  0,  1.8),  // pull right-forward (right arc half)
+  new THREE.Vector3(-3.0,  0,  2.4),  // wider left-forward pull
+  new THREE.Vector3( 3.0,  0,  2.4),  // wider right-forward pull (symmetric)
   new THREE.Vector3( 0.0,  0,  0.0)   // return to center — ready for impact
 );
 
