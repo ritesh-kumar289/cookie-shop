@@ -64,10 +64,16 @@ function kf(frames, progress) {
 // Control points at ±2.2/Z=1.9 — noticeably wider than the original (±2.0/Z=1.8)
 // but more measured than the previous push (±3.0/Z=2.4).
 const ROLL_CURVE = new THREE.CubicBezierCurve3(
-  new THREE.Vector3( 0.0,  0,  0.0),  // start: continuous with scene3 end
-  new THREE.Vector3(-1.6,  0,  1.4),  // pull left-forward (left arc half)
-  new THREE.Vector3( 1.6,  0,  1.4),  // pull right-forward (right arc half)
-  new THREE.Vector3( 0.0,  0,  0.0)   // return to center — ready for impact
+   new THREE.Vector3( 0.0, 0, 0.0),
+
+  // stronger pull left (entry)
+  new THREE.Vector3(-2.4, 0, 1.9),
+
+  // MUCH stronger pull right (exit push)
+  new THREE.Vector3( 3.2, 0, 2.2),
+
+  // 🔥 key change — end on RIGHT instead of center
+  new THREE.Vector3( 1.8, 0, 0.2)  // return to center — ready for impact
 );
 
 // Pre-compute curve length once
