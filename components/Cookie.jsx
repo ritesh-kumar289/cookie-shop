@@ -72,6 +72,13 @@ const ROLL_CURVE = new THREE.CubicBezierCurve3(
 // Pre-compute curve length once
 const ROLL_CURVE_LENGTH = ROLL_CURVE.getLength();
 
+// ── Cookie radius for rolling physics ────────────────────────────────────────
+// After bounding-box normalisation the model is 1 world-unit at its largest
+// dimension, so the disc radius ≈ 0.5 world units at group scale = 1.
+// apparentRadius_world = COOKIE_RADIUS_AT_SCALE_1 * groupScale
+// MUST be defined before PHASE_A_END_SPIN which references it.
+const COOKIE_RADIUS_AT_SCALE_1 = 0.5;
+
 // Pre-compute Phase A's ending spin angle so Phase B continues smoothly from it.
 // Uses the cookie's scale at PHASE_B_SPLIT (0.76) = 0.70 from KF_SCALE.
 const PHASE_A_END_SPIN = -(ROLL_CURVE_LENGTH / (COOKIE_RADIUS_AT_SCALE_1 * 0.70) / 2.0);
@@ -122,12 +129,6 @@ const KF_POS_Y_BASE = [
   { p: 0.76, v:  0    },
   { p: 1.00, v:  0    },
 ];
-
-// ── Cookie radius for rolling physics ────────────────────────────────────────
-// After bounding-box normalisation the model is 1 world-unit at its largest
-// dimension, so the disc radius ≈ 0.5 world units at group scale = 1.
-// apparentRadius_world = COOKIE_RADIUS_AT_SCALE_1 * groupScale
-const COOKIE_RADIUS_AT_SCALE_1 = 0.5;
 
 // Scroll-direction lean sensitivity (rad per unit of normalised scroll delta)
 const TILT_SENSITIVITY = 35;
