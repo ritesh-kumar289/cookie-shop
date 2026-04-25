@@ -304,7 +304,12 @@ export default function Cookie({ scrollProgress, mouseRef, presentationEnabled }
 
       grp.position.set(point.x, kf(KF_POS_Y_BASE, p), point.z);
 
-      // Arc roll spin (rotation.z — accepted coin-flip during curved motion)
+      // Arc roll spin.
+      // Note: rotation.z when rotX=π/2 spins around world -Y (not the tyre axle),
+      // but during Phase A the cookie is also rotating in Y to face the curve
+      // tangent direction, which visually masks the axis mismatch.  The correct
+      // per-axle tyre spin is only needed — and applied via the inner spinGrpRef —
+      // in Phase B where the cookie rolls straight and faces the camera directly.
       const arcLen         = rollT * ROLL_CURVE_LENGTH;
       const apparentRadius = COOKIE_RADIUS_AT_SCALE_1 * sc;
       grp.rotation.z       = -(arcLen / apparentRadius);

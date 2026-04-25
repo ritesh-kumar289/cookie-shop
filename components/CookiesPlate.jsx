@@ -141,8 +141,8 @@ export default function CookiesPlate({ scrollProgress }) {
         (Math.random() - 0.5) * amp * 0.25
       );
     } else {
-      if (p >= 0.79 && p < 0.92) {
-        const settleT = localT(p, 0.79, 0.92);
+      if (p >= 0.79 && p < 0.90) {
+        const settleT = localT(p, 0.79, 0.90);
         const settle  = Math.exp(-settleT * 5) * Math.abs(Math.sin(settleT * Math.PI * 2.5)) * 0.04;
         grp.position.set(0, settle, 0);
       } else {
