@@ -1,21 +1,17 @@
 /**
  * CookiesPlate.jsx
  *
- * Multiple cookies on a cork board plate — appears at the end of the roll
- * (Scene 5 "IMPACT") and stays through Scene 6 "THE SHOWCASE".
+ * Multiple cookies on a cork board plate — appears at the end of the roll.
  *
- *  0.00 – 0.65  invisible (opacity 0)
- *  0.65 – 0.75  fade in (single cookie rolls in and "lands")
- *  0.75 – 1.00  fully visible, gentle slow rotation, hero showcase
- *
- * Camera at this stage (see CameraRig.jsx):
- *   0.80 → [2, 3, 2]   angled hero shot
- *   1.00 → [0.5, 0.5, 2] macro close-up
+ *  0.00 – 0.76  invisible (opacity 0)
+ *  0.76 – 0.87  fade in (single cookie rolls in and "lands")
+ *  0.87 – 1.00  fully visible, gentle slow rotation, hero showcase
  */
 
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
 
 // ── DRACO decoder (CDN) ───────────────────────────────────────────────────────
 useGLTF.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
@@ -30,17 +26,59 @@ function localT(p, a, b) {
 }
 
 // ── Impact shake params ───────────────────────────────────────────────────────
-// A brief position/rotation jolt at the moment the cookie "hits" the plate.
-const IMPACT_PROGRESS = 0.66;  // scroll progress value of the impact moment
-const SHAKE_WIN = 0.04;   // window over which shake decays
+const IMPACT_PROGRESS = 0.77;
+const SHAKE_WIN = 0.04;
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function CookiesPlate({ scrollProgress }) {
   const groupRef    = useRef();
   const prevPRef    = useRef(0);
-  const shakeRef    = useRef(0);   // shake intensity 0-1
+  const shakeRef    = useRef(0);
   const { scene }   = useGLTF('/models/cookies.glb');
+
+  // Clone, centre, normalise and fix materials.
+  // SAME corrected order as Cookie.jsx: scale first → updateMatrixWorld → centre.
+  const clonedScene = useMemo(() => {
+    const c = scene.clone(true);
+    c.updateMatrixWorld(true);
+
+    const box1    = new THREE.Box3().setFromObject(c);
+    const sizeVec = new THREE.Vector3();
+    box1.getSize(sizeVec);
+    const maxDim = Math.max(sizeVec.x, sizeVec.y, sizeVec.z);
+
+    if (maxDim > 0) {
+      c.scale.setScalar(1 / maxDim);
+      c.updateMatrixWorld(true);
+    }
+
+    const box2   = new THREE.Box3().setFromObject(c);
+    const centre = new THREE.Vector3();
+    box2.getCenter(centre);
+    c.position.sub(centre);
+
+    c.traverse((child) => {
+      if (child.isMesh) {
+        child.frustumCulled = false;
+        child.castShadow    = true;
+        const mats = Array.isArray(child.material)
+          ? child.material
+          : [child.material];
+        mats.forEach((m) => {
+          m.side        = THREE.DoubleSide;
+          m.depthWrite  = true;
+          m.depthTest   = true;
+          m.transparent = true;
+          m.alphaTest   = 0;
+          m.alphaMap    = null;
+          m.needsUpdate = true;
+        });
+      }
+    });
+
+    return c;
+  }, [scene]);
 
   useFrame((_, delta) => {
     if (!groupRef.current) return;
@@ -49,55 +87,60 @@ export default function CookiesPlate({ scrollProgress }) {
 
     // ── Opacity ───────────────────────────────────────────────────────────
     let opacity = 0;
-    if (p >= 0.65 && p < 0.75) {
-      opacity = localT(p, 0.65, 0.75);
-    } else if (p >= 0.75) {
+    if (p >= 0.76 && p < 0.87) {
+      opacity = localT(p, 0.76, 0.87);
+    } else if (p >= 0.87) {
       opacity = 1;
     }
 
-    grp.traverse((child) => {
-      if (child.isMesh && child.material) {
-        const mats = Array.isArray(child.material) ? child.material : [child.material];
-        mats.forEach((m) => {
-          if (m.transparent !== true) m.transparent = true;
-          if (Math.abs(m.opacity - opacity) > 0.001) m.opacity = opacity;
-        });
-      }
-    });
-
-    // ── Scale ─────────────────────────────────────────────────────────────
-    grp.scale.setScalar(1.2);
-
-    // ── Showcase slow rotation (only when fully visible) ──────────────────
-    if (p >= 0.75) {
-      grp.rotation.y += delta * 0.12;
+    // Hide entirely when opacity is zero — avoids traversal cost and prevents
+    // any ghost pixels while the cookie-to-plate transition is happening.
+    grp.visible = opacity > 0.005;
+    if (grp.visible) {
+      grp.traverse((child) => {
+        if (child.isMesh && child.material) {
+          const mats = Array.isArray(child.material) ? child.material : [child.material];
+          mats.forEach((m) => {
+            if (m.transparent !== true) m.transparent = true;
+            if (Math.abs(m.opacity - opacity) > 0.001) m.opacity = opacity;
+          });
+        }
+      });
     }
 
-    // ── Impact camera shake (triggered once when crossing IMPACT_PROGRESS) ───────
+    // ── Scale ─────────────────────────────────────────────────────────────
+    // After bbox normalisation the model is 1 world-unit wide at scale 1.
+    // 1.5 gives a plate that fills the cinematic hero shot nicely.
+    grp.scale.setScalar(1.5);
+
+    // ── Showcase slow rotation (only when fully visible) ──────────────────
+    if (p >= 0.87) {
+      grp.rotation.y += delta * 0.08;
+    }
+
+    // ── Impact camera shake ───────────────────────────────────────────────
     const prevP = prevPRef.current;
     const crossedForward  = prevP < IMPACT_PROGRESS && p >= IMPACT_PROGRESS;
     const crossedBackward = prevP >= IMPACT_PROGRESS && p < IMPACT_PROGRESS;
 
     if (crossedForward || crossedBackward) {
-      shakeRef.current = 1.0;  // reset shake intensity
+      shakeRef.current = 1.0;
     }
     prevPRef.current = p;
 
-    // Decay and apply shake to group position
     if (shakeRef.current > 0.001) {
       shakeRef.current = Math.max(0, shakeRef.current - delta / SHAKE_WIN);
       const s   = shakeRef.current;
-      const amp = s * 0.06;
+      const amp = s * 0.05;
       grp.position.set(
         (Math.random() - 0.5) * amp,
-        Math.abs(Math.random()) * amp * 0.5,
-        (Math.random() - 0.5) * amp * 0.3
+        Math.abs(Math.random()) * amp * 0.4,
+        (Math.random() - 0.5) * amp * 0.25
       );
     } else {
-      // Slight settle bounce after impact lands
-      if (p >= 0.65 && p < 0.80) {
-        const settleT = localT(p, 0.65, 0.80);
-        const settle  = Math.exp(-settleT * 5) * Math.abs(Math.sin(settleT * Math.PI * 2.5)) * 0.05;
+      if (p >= 0.76 && p < 0.90) {
+        const settleT = localT(p, 0.76, 0.90);
+        const settle  = Math.exp(-settleT * 5) * Math.abs(Math.sin(settleT * Math.PI * 2.5)) * 0.04;
         grp.position.set(0, settle, 0);
       } else {
         grp.position.set(0, 0, 0);
@@ -107,7 +150,7 @@ export default function CookiesPlate({ scrollProgress }) {
 
   return (
     <group ref={groupRef}>
-      <primitive object={scene} />
+      <primitive object={clonedScene} />
     </group>
   );
 }
